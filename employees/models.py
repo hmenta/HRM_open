@@ -9,8 +9,15 @@ class Employee(models.Model):
     email = models.EmailField(unique=True, verbose_name="Correo Electrónico")
     position = models.CharField(max_length=100, verbose_name="Cargo")
     department = models.CharField(max_length=100, verbose_name="Departamento")
+    
+    # Fechas y Estados
     hire_date = models.DateField(verbose_name="Fecha de Ingreso")
     is_active = models.BooleanField(default=True, verbose_name="Activo")
+    
+    # Nuevos campos de baja
+    termination_date = models.DateField(verbose_name="Fecha de Egreso", blank=True, null=True)
+    termination_reason = models.CharField(max_length=255, verbose_name="Motivo de Egreso", blank=True, null=True)
+    
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):

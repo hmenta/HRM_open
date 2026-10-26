@@ -2,12 +2,12 @@
 Human Resourses Management for Small and Medium Businesses
 
 **Requirements:**
-    Django>=4.2,<5.0
+    Django>=4.2,<5.0  pip install django 
     psycopg2-binary>=2.9.0
-    python-decouple>=3.8
+    python-decouple>=3.8 pip install python-decouple
     dj-database-url>=2.1.0
     gunicorn>=21.2.0
-    whitenoise>=6.5.0
+    whitenoise>=6.5.0  pip install dj_database_url whitenoise
 
 **How to install on local virtual enviroment for programming:**
 
@@ -29,7 +29,7 @@ Human Resourses Management for Small and Medium Businesses
 
 ## Instrucciones de Instalación Local (Desarrollo con SQLite)
 
-0. **Clonar o descargar** el repositorio y abrir una terminal (PowerShell o CMD) en la carpeta raíz.
+0. **Clonar o descargar** el repositorio y abrir una terminal (PowerShell o CMD) en la carpeta HRM_Open (o donde se haya descomprimido el paquete).
 
 1. **Instalar dependencias**
 pip install -r requirements.txt
@@ -37,6 +37,8 @@ pip install -r requirements.txt
 2. **Crear y activar un entorno virtual (ejecutar en Powershell)**:
    python -m venv venv
    .\venv\Scripts\Activate.ps1
+
+   Si no se tiene instalado Django, ejecutar: pip install django en Powershell
 
 3. **Aplicar migraciones y crear superusuario**
     python manage.py makemigrations
@@ -61,3 +63,18 @@ pip install -r requirements.txt
         docker-compose exec web python manage.py migrate
         docker-compose exec web python manage.py createsuperuser
         El sistema estará disponible en http://localhost:8000.
+
+## Copias de Seguridad y Restauración
+
+**SQLite (Desarrollo)**
+Backup: Copiar el archivo db.sqlite3 a una ubicación segura.
+Restauración: Sobrescribir el archivo db.sqlite3 con la copia de respaldo.
+
+## PostgreSQL (Producción / Docker)
+Backup:
+en PowerShell
+docker-compose exec db pg_dump -U hrm_user hrm_open > backup.sql
+
+Restauración:
+en PowerShell
+docker-compose exec -T db psql -U hrm_user hrm_open < backup.sql

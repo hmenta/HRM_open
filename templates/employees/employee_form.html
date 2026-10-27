@@ -12,10 +12,12 @@
             <a class="navbar-brand" href="{% url 'employee_list' %}">← Volver a Legajos</a>
         </div>
     </nav>
-    <div class="container my-5" style="max-width: 600px;">
+
+    <div class="container my-5" style="max-width: 800px;">
         <div class="card shadow-sm p-4">
-            <h2 class="mb-4">{{ action }} Legajo</h2>
-            <form method="post">
+            <h2 class="mb-4 text-center">{{ action }} Legajo</h2>
+            
+            <form method="post" enctype="multipart/form-data" class="needs-validation" novalidate>
                 {% csrf_token %}
                 {{ form.non_field_errors }}
                 
@@ -23,11 +25,37 @@
                     <div class="mb-3">
                         <label class="form-label fw-bold">{{ field.label }}</label>
                         {{ field }}
-                        {{ field.errors }}
+
+                        <!-- Previsualización de la Foto actual -->
+                        {% if field.name == 'photo' and employee and employee.photo %}
+                            <div class="mt-2 p-2 border rounded bg-white d-inline-block">
+                                <p class="small text-muted mb-1">Foto actual:</p>
+                                <img src="{{ employee.photo.url }}" alt="Foto de perfil" class="rounded" style="max-height: 100px; object-fit: cover;">
+                            </div>
+                        {% endif %}
+
+                        <!-- Enlace para abrir el documento actual -->
+                        {% if field.name == 'document' and employee and employee.document %}
+                            <div class="mt-2">
+                                <a href="{{ employee.document.url }}" target="_blank" class="btn btn-sm btn-outline-primary">
+                                    📄 Abrir documento actual en nueva pestaña
+                                </a>
+                            </div>
+                        {% endif %}
+
+                        {% if field.help_text %}
+                            <div class="form-text">{{ field.help_text }}</div>
+                        {% endif %}
+                        {% for error in field.errors %}
+                            <div class="text-danger small mt-1">{{ error }}</div>
+                        {% endfor %}
                     </div>
                 {% endfor %}
 
-                <button type="submit" class="btn btn-primary w-100 mt-3">Guardar Legajo</button>
+                <div class="d-flex justify-content-between mt-4">
+                    <button type="submit" class="btn btn-success px-4 py-2">Guardar Legajo</button>
+                    <a href="{% url 'employee_list' %}" class="btn btn-secondary px-4 py-2">Cancelar</a>
+                </div>
             </form>
         </div>
     </div>

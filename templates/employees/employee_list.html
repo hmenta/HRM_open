@@ -77,6 +77,7 @@
                                 {% endif %}
                             </td>
                             <td class="text-end">
+                                <a href="{% url 'employee_detail' emp.pk %}" class="btn btn-sm btn-info text-white">Ver</a>
                                 <a href="{% url 'employee_update' emp.id %}" class="btn btn-sm btn-outline-primary">Editar</a>
                             </td>
                         </tr>

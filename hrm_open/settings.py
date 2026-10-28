@@ -46,6 +46,8 @@ TEMPLATES = [
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
                 'core.context_processors.company_settings',
+                # ¡Esta línea para la configuración de Empresa!
+                'employees.context_processors.company_context',
             ],
         },
     },

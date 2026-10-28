@@ -78,3 +78,22 @@ class Employee(models.Model):
         verbose_name = "Legajo"
         verbose_name_plural = "Legajos"
         ordering = ['last_name', 'first_name']
+
+
+# Registro de configuración de Empresa
+class CompanySettings(models.Model):
+    company_name = models.CharField(max_length=100, default="HRM Open", verbose_name="Nombre de la Empresa")
+    logo = models.ImageField(upload_to='company/', blank=True, null=True, verbose_name="Logo de la Empresa (JPG/PNG)")
+
+    def save(self, *args, **kwargs):
+        # Patrón Singleton: En principio, forzamos el ID 1 para que sea un registro único
+        self.pk = 1
+        super().save(*args, **kwargs)
+
+    @classmethod
+    def load(cls):
+        obj, created = cls.objects.get_or_create(pk=1)
+        return obj
+
+    def __str__(self):
+        return "Configuración General de la Empresa"

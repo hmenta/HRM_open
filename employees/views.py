@@ -2,7 +2,7 @@ from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
 from django.db.models import Q
 from .models import Employee
-from .forms import EmployeeForm
+from .forms import EmployeeForm, EmployeeDocumentFormSet
 
 
 # ==========================================
@@ -47,18 +47,27 @@ def employee_list_view(request):
 @login_required
 def employee_create_view(request):
     """
-    Gestiona el formulario para dar de alta un nuevo empleado.
-    Procesa datos de texto y archivos multimedia (request.FILES).
+    Gestiona el formulario para dar de alta un nuevo empleado junto con 
+    su respectivo formset de múltiples documentos adjuntos.
     """
     if request.method == 'POST':
         form = EmployeeForm(request.POST, request.FILES)
-        if form.is_valid():
-            form.save()
-            return redirect('employee_list')
+        formset = EmployeeDocumentFormSet(request.POST, request.FILES)
+        
+        if form.is_valid() and formset.is_valid():
+            employee = form.save()          # Guardamos primero el empleado principal
+            formset.instance = employee     # Vinculamos el formset con el empleado recién creado
+            formset.save()                  # Guardamos los documentos adjuntos
+            return redirect('employee_detail', pk=employee.pk)
     else:
         form = EmployeeForm()
+        formset = EmployeeDocumentFormSet()
         
-    return render(request, 'employees/employee_form.html', {'form': form, 'action': 'Crear'})
+    return render(request, 'employees/employee_form.html', {
+        'form': form, 
+        'formset': formset, 
+        'action': 'Crear'
+    })
 
 
 # ==========================================
@@ -67,21 +76,26 @@ def employee_create_view(request):
 @login_required
 def employee_update_view(request, pk):
     """
-    Permite modificar los datos y archivos de un empleado específico.
-    Utiliza 'instance=employee' para actualizar en lugar de duplicar.
+    Permite modificar los datos, la foto y los documentos múltiples de un empleado específico.
+    Utiliza 'instance=employee' para actualizar en lugar de duplicar registros.
     """
     employee = get_object_or_404(Employee, pk=pk)
     
     if request.method == 'POST':
         form = EmployeeForm(request.POST, request.FILES, instance=employee)
-        if form.is_valid():
+        formset = EmployeeDocumentFormSet(request.POST, request.FILES, instance=employee)
+        
+        if form.is_valid() and formset.is_valid():
             form.save()
-            return redirect('employee_list')
+            formset.save()
+            return redirect('employee_detail', pk=employee.pk)
     else:
         form = EmployeeForm(instance=employee)
+        formset = EmployeeDocumentFormSet(instance=employee)
         
     return render(request, 'employees/employee_form.html', {
         'form': form, 
+        'formset': formset,
         'action': 'Editar', 
         'employee': employee
     })
@@ -93,7 +107,8 @@ def employee_update_view(request, pk):
 @login_required
 def employee_detail_view(request, pk):
     """
-    Muestra la ficha completa y detallada de un empleado en modo lectura.
+    Muestra la ficha completa y detallada de un empleado en modo lectura,
+    incluyendo el listado de documentos múltiples adjuntos.
     """
     employee = get_object_or_404(Employee, pk=pk)
     return render(request, 'employees/employee_detail.html', {'employee': employee})

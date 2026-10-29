@@ -65,9 +65,11 @@ class Employee(models.Model):
         verbose_name="Motivo de Baja"
     )
 
-    # Archivos multimedia y documentos
+    # Archivos multimedia (Se mantiene la foto del colaborador)
     photo = models.ImageField(upload_to='employees/photos/', verbose_name="Fotografía", blank=True, null=True)
-    document = models.FileField(upload_to='employees/docs/', verbose_name="Documentación adjunta (PDF/Doc)", blank=True, null=True)
+    
+    # ⚠️ CAMBIO CLAVE: Se eliminó el campo 'document' individual de aquí.
+    # Ahora la documentación se gestiona de forma relacional mediante el modelo 'EmployeeDocument' de abajo.
     
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -86,7 +88,7 @@ class CompanySettings(models.Model):
     logo = models.ImageField(upload_to='company/', blank=True, null=True, verbose_name="Logo de la Empresa (JPG/PNG)")
 
     def save(self, *args, **kwargs):
-        # Patrón Singleton: En principio, forzamos el ID 1 para que sea un registro único
+        # Patrón Singleton: Forzamos el ID 1 para que sea un registro único
         self.pk = 1
         super().save(*args, **kwargs)
 
@@ -97,3 +99,34 @@ class CompanySettings(models.Model):
 
     def __str__(self):
         return "Configuración General de la Empresa"
+
+
+# =========================================================================
+# MODELO RELACIONADO PARA SOPORTAR MÚLTIPLES DOCUMENTOS POR LEGAJO
+# =========================================================================
+class EmployeeDocument(models.Model):
+    # Relación ForeignKey: permite asociar múltiples archivos a un mismo empleado
+    employee = models.ForeignKey(
+        Employee, 
+        on_delete=models.CASCADE, 
+        related_name='documents', 
+        verbose_name="Legajo"
+    )
+    # Título o etiqueta descriptiva del archivo (Ej: DNI, Examen Médico, Título, etc.)
+    title = models.CharField(
+        max_length=100, 
+        verbose_name="Título (Ej: DNI, Examen Médico, Certificado, etc)"
+    )
+    # Archivo físico en formato PDF o imagen
+    document = models.FileField(
+        upload_to='employees/docs/', 
+        verbose_name="Archivo PDF / Imagen"
+    )
+    # Fecha y hora automática de carga
+    uploaded_at = models.DateTimeField(
+        auto_now_add=True, 
+        verbose_name="Fecha de carga"
+    )
+
+    def __str__(self):
+        return f"{self.title} - {self.employee}"

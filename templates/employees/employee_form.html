@@ -21,6 +21,7 @@
                 {% csrf_token %}
                 {{ form.non_field_errors }}
                 
+                <!-- Renderizado de los campos del formulario principal -->
                 {% for field in form %}
                     <div class="mb-3">
                         <label class="form-label fw-bold">{{ field.label }}</label>
@@ -34,15 +35,6 @@
                             </div>
                         {% endif %}
 
-                        <!-- Enlace para abrir el documento actual -->
-                        {% if field.name == 'document' and employee and employee.document %}
-                            <div class="mt-2">
-                                <a href="{{ employee.document.url }}" target="_blank" class="btn btn-sm btn-outline-primary">
-                                    📄 Abrir documento actual en nueva pestaña
-                                </a>
-                            </div>
-                        {% endif %}
-
                         {% if field.help_text %}
                             <div class="form-text">{{ field.help_text }}</div>
                         {% endif %}
@@ -51,6 +43,41 @@
                         {% endfor %}
                     </div>
                 {% endfor %}
+
+                <hr class="my-4">
+
+                <!-- ======================================================= -->
+                <!-- SECCIÓN DEL FORMSET PARA CARGAR MÚLTIPLES DOCUMENTOS    -->
+                <!-- ======================================================= -->
+                <h4 class="mb-3">Documentación Adjunta</h4>
+                <p class="text-muted small">Puedes cargar múltiples documentos indicando su título descriptivo y seleccionando el archivo correspondiente.</p>
+                
+                <!-- Management form obligatorio para que Django procese el formset correctamente -->
+                {{ formset.management_form }}
+                
+                <div class="row">
+                    {% for dict_form in formset %}
+                        <div class="card mb-3 p-3 bg-light border">
+                            {{ dict_form.id }}
+                            <div class="row align-items-center">
+                                <div class="col-md-5">
+                                    <label class="form-label small fw-bold">Título / Tipo de Documento</label>
+                                    {{ dict_form.title }}
+                                </div>
+                                <div class="col-md-5">
+                                    <label class="form-label small fw-bold">Archivo (PDF / Imagen)</label>
+                                    {{ dict_form.document }}
+                                </div>
+                                {% if formset.can_delete %}
+                                    <div class="col-md-2 text-center">
+                                        <label class="form-label small d-block text-danger fw-bold">Eliminar</label>
+                                        {{ dict_form.DELETE }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
 
                 <div class="d-flex justify-content-between mt-4">
                     <button type="submit" class="btn btn-success px-4 py-2">Guardar Legajo</button>

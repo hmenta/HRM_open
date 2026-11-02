@@ -9,8 +9,8 @@ class EmployeeForm(forms.ModelForm):
         fields = [
             'employee_leg', 'dni', 'cuil', 'first_name', 'last_name', 
             'email', 'phone', 'street', 'street_number', 'floor', 
-            'apartment', 'postal_code', 'city', 'state', 'position', 
-            'department_rel', 'hire_date', 'is_active', 
+            'apartment', 'postal_code', 'city', 'state', 'is_active', 'hire_date',
+            'area_rel', 'sector_rel', 'position', 'social_work_rel', 'agreement_rel',
             'termination_date', 'termination_reason_rel', 'photo'
         ]
         widgets = {
@@ -28,10 +28,14 @@ class EmployeeForm(forms.ModelForm):
             'city': forms.TextInput(attrs={'class': 'form-control'}),
             'state': forms.TextInput(attrs={'class': 'form-control'}),
             'position': forms.TextInput(attrs={'class': 'form-control'}),
+            'area_rel': forms.Select(attrs={'class': 'form-select'}),
+            'sector_rel': forms.Select(attrs={'class': 'form-select'}),
+            'social_work_rel': forms.Select(attrs={'class': 'form-select'}),
+            'agreement_rel': forms.Select(attrs={'class': 'form-select'}),
             'employee_leg': forms.TextInput(attrs={'class': 'form-control'}),
             'dni': forms.TextInput(attrs={'class': 'form-control'}),
             'cuil': forms.TextInput(attrs={'class': 'form-control'}),
-            'department_rel': forms.Select(attrs={'class': 'form-select'}),
+            #'department_rel': forms.Select(attrs={'class': 'form-select'}),
             'termination_reason_rel': forms.Select(attrs={'class': 'form-select'}),
             'is_active': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
             'photo': forms.ClearableFileInput(attrs={'class': 'form-control'}),

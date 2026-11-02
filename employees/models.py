@@ -1,16 +1,71 @@
 from django.db import models
 
-class DepartmentCatalog(models.Model):
-    name = models.CharField(max_length=100, unique=True, verbose_name="Nombre del Departamento")
+# --- MODELOS PARA CAMPOS MAESTROS PARAMETRIZABLES ---
+
+class SocialWork(models.Model):
+    """Modelo para parametrizar las Obras Sociales"""
+    name = models.CharField(max_length=100, unique=True, verbose_name="Obra Social")
 
     def __str__(self):
         return self.name
 
     class Meta:
-        verbose_name = "Departamento"
-        verbose_name_plural = "Departamentos"
+        verbose_name = "Obra Social"
+        verbose_name_plural = "Obras Sociales"
         ordering = ['name']
 
+class CollectiveAgreement(models.Model):
+    """Modelo para parametrizar los Convenios Colectivos"""
+    name = models.CharField(max_length=100, unique=True, verbose_name="Convenio")
+
+    def __str__(self):
+        return self.name
+
+    class Meta:
+            verbose_name = "Convenio Colectivo"
+            verbose_name_plural = "Convenios"
+            ordering = ['name']
+
+class Area(models.Model):
+    """Modelo para parametrizar las Áreas organizacionales"""
+    name = models.CharField(max_length=100, unique=True, verbose_name="Área")
+
+    def __str__(self):
+        return self.name
+
+    class Meta:
+        verbose_name = "Área"
+        verbose_name_plural = "Áreas"
+        ordering = ['name']
+
+class Sector(models.Model):
+    """Modelo para parametrizar los Sectores dentro de las áreas"""
+    name = models.CharField(max_length=100, unique=True, verbose_name="Sector")
+    area_rel = models.ForeignKey(Area, on_delete=models.CASCADE, related_name='sectors', verbose_name="Área a la que pertenece", null=True, blank=True)
+
+    def __str__(self):
+        return self.name
+
+    class Meta:
+        verbose_name = "Sector"
+        verbose_name_plural = "Sectores"
+        ordering = ['name']
+
+# --- MODELO CON DEPARTAMENTO UNICO ---
+#
+#class DepartmentCatalog(models.Model):
+#    name = models.CharField(max_length=100, unique=True, verbose_name="Nombre del Departamento")
+#
+#    def __str__(self):
+#        return self.name
+#
+#    class Meta:
+#        verbose_name = "Departamento"
+#        verbose_name_plural = "Departamentos"
+#        ordering = ['name']
+
+
+# --- CATALOGO DE MOTIVOS DE FIN DE CONTRATO DE TRABAJO --- 
 
 class TerminationReasonCatalog(models.Model):
     name = models.CharField(max_length=100, unique=True, verbose_name="Motivo de Baja")
@@ -23,6 +78,8 @@ class TerminationReasonCatalog(models.Model):
         verbose_name_plural = "Motivos de Baja"
         ordering = ['name']
 
+
+#  --- MODELO PRINCIPAL DE LEGAJO EMPLEADO ---
 
 class Employee(models.Model):
     # Identificación
@@ -44,14 +101,20 @@ class Employee(models.Model):
     state = models.CharField(max_length=100, verbose_name="Provincia / Estado", blank=True, null=True)
 
     # Laboral
-    position = models.CharField(max_length=100, verbose_name="Cargo")
-    department_rel = models.ForeignKey(
-        DepartmentCatalog, 
-        on_delete=models.SET_NULL, 
-        null=True, 
-        blank=True, 
-        verbose_name="Departamento"
-    )
+    position = models.CharField(max_length=100, verbose_name="Posición")
+    area_rel = models.ForeignKey(Area, on_delete=models.SET_NULL, null=True, blank=True, verbose_name="Área")
+    sector_rel = models.ForeignKey(Sector, on_delete=models.SET_NULL, null=True, blank=True, verbose_name="Sector")
+    social_work_rel = models.ForeignKey(SocialWork, on_delete=models.SET_NULL, null=True, blank=True, verbose_name="Obra Social")
+    agreement_rel = models.ForeignKey(CollectiveAgreement, on_delete=models.SET_NULL, null=True, blank=True, verbose_name="Convenio")
+    
+    # --- habilitar solo para modelo de departamento único --- 
+    #department_rel = models.ForeignKey(
+    #    DepartmentCatalog, 
+    #    on_delete=models.SET_NULL, 
+    #    null=True, 
+    #    blank=True, 
+    #    verbose_name="Departamento")
+    
     hire_date = models.DateField(verbose_name="Fecha de Ingreso")
     is_active = models.BooleanField(default=True, verbose_name="Activo")
     
@@ -82,7 +145,7 @@ class Employee(models.Model):
         ordering = ['last_name', 'first_name']
 
 
-# Registro de configuración de Empresa
+# --- MODELO CONFIGURACIÓN EMPRESA ---
 class CompanySettings(models.Model):
     company_name = models.CharField(max_length=100, default="HRM Open", verbose_name="Nombre de la Empresa")
     logo = models.ImageField(upload_to='company/', blank=True, null=True, verbose_name="Logo de la Empresa (JPG/PNG)")
@@ -99,6 +162,7 @@ class CompanySettings(models.Model):
 
     def __str__(self):
         return "Configuración General de la Empresa"
+
 
 
 # =========================================================================

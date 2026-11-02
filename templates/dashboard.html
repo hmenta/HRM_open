@@ -18,6 +18,21 @@
                 <span>{{ company.company_name }}</span>
             </a>
             
+            <div class="d-flex ms-auto align-items-center">
+                <!-- Ícono de configuración / Panel de Django -->
+                {% if request.user.is_staff or request.user.is_superuser %}
+                    <!-- HABILITADO: Apunta al admin de Django -->
+                    <a href="{% url 'admin:index' %}" class="text-white text-decoration-none me-3" title="Panel de Administración" target="_blank">
+                        <span style="font-size: 1.2rem;">⚙️</span>
+                    </a>
+                {% else %}
+                    <!-- ATENUADO: Sin permisos, no clickeable -->
+                    <span class="text-white-50 me-3" style="opacity: 0.4; cursor-not-allowed;" title="Acceso restringido a administradores">
+                        <span style="font-size: 1.2rem;">⚙️</span>
+                    </span>
+                {% endif %}
+            </div>
+
             <!-- Bloque dinámico de usuario y cierre de sesión -->
             <div class="d-flex align-items-center">
                 {% if request.user.is_authenticated %}

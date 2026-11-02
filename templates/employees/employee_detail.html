@@ -33,11 +33,20 @@
                 <div class="col-md-8">
                     <p><strong>Nro. Legajo:</strong> {{ employee.employee_leg|default:"-" }}</p>
                     <p><strong>DNI / CUIL:</strong> {{ employee.dni|default:"-" }} / {{ employee.cuil|default:"-" }}</p>
-                    <p><strong>Cargo:</strong> {{ employee.position }}</p>
-                    <p><strong>Departamento:</strong> {{ employee.department_rel.name|default:"-" }}</p>
+                    <p><strong>Puesto:</strong> {{ employee.position }}</p>
+                    <p><strong>Área:</strong> {{ employee.area_rel.name|default:"-" }}</p>
+                    <p><strong>Sector:</strong> {{ employee.sector_rel.name|default:"-" }}</p>
+                    <p><strong>Obra Social:</strong> {{ employee.social_work_rel.name|default:"-" }}</p>
+                    <p><strong>Convenio:</strong> {{ employee.agreement_rel.name|default:"-" }}</p>
                     <p><strong>Correo:</strong> {{ employee.email }}</p>
                     <p><strong>Teléfono:</strong> {{ employee.phone|default:"-" }}</p>
+
+
+                    <!-- MAPEO PARA EL MODELO DE DEPARTAMENTO ÚNICO 
+                    <p><strong>Cargo:</strong> {{ employee.position }}</p>
+                    <p><strong>Departamento:</strong> {{ employee.department_rel.name|default:"-" }}</p> -->
                     
+                     
                     <!-- Estado del empleado con Badge de Bootstrap -->
                     <p><strong>Estado:</strong> 
                         {% if employee.is_active %}

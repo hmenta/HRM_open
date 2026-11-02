@@ -86,3 +86,16 @@ LOGOUT_REDIRECT_URL = '/accounts/login/'
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
+
+# ==========================================
+# CONFIGURACIÓN DE SEGURIDAD Y SESIONES
+# ==========================================
+
+# 1. Cierra la sesión automáticamente cuando el usuario cierra el navegador o la pestaña
+SESSION_EXPIRE_AT_BROWSER_CLOSE = True
+
+# 2. Tiempo de vida de la sesión en segundos de inactividad (ej: 1800 segundos = 30 minutos)
+SESSION_COOKIE_AGE = 600 
+
+# 3. Hace que el temporizador de inactividad se reinicie con cada interacción o solicitud del usuario
+SESSION_SAVE_EVERY_REQUEST = True

@@ -1,0 +1,61 @@
+{% extends "dashboard.html" %}
+
+{% block content %}
+<div class="container mt-4 mb-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">Registrar Certificado de Ausencia</h4>
+                </div>
+                <div class="card-body">
+                    <form method="POST" enctype="multipart/form-data">
+                        {% csrf_token %}
+
+                        <div class="mb-3">
+                            <label class="form-label">Empleado / Legajo</label>
+                            {{ form.employee }}
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Motivo</label>
+                            {{ form.reason }}
+                        </div>
+
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Fecha de Inicio</label>
+                                {{ form.start_date }}
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Fecha de Fin</label>
+                                {{ form.end_date }}
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Observaciones</label>
+                            {{ form.observations }}
+                        </div>
+
+                        <hr class="my-4">
+                        <h5 class="mb-3">Adjuntar Certificados (PDF / JPG / PNG)</h5>
+                        
+                        {{ formset.management_form }}
+                        {% for subform in formset %}
+                            <div class="mb-2 border p-2 rounded bg-light">
+                                {{ subform.as_p }}
+                            </div>
+                        {% endfor %}
+
+                        <div class="d-flex justify-content-between mt-4">
+                            <a href="{% url 'absence_list' %}" class="btn btn-secondary">Cancelar</a>
+                            <button type="submit" class="btn btn-success">Guardar Certificado</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

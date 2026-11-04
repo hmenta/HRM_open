@@ -1,4 +1,6 @@
+import os
 from django.db import models
+from django.utils import timezone
 
 # --- MODELOS PARA CAMPOS MAESTROS PARAMETRIZABLES ---
 
@@ -194,3 +196,58 @@ class EmployeeDocument(models.Model):
 
     def __str__(self):
         return f"{self.title} - {self.employee}"
+
+# --- MODULO PARA GESTIONAR CERTIFICADOS DE AUSENCIAS ---
+
+def absence_document_path(instance, filename):
+    # Organiza las descargas en: media/absence_certificates/legajo_<id>/<filename>
+    return f'absence_certificates/legajo_{instance.certificate.employee.id}/{filename}'
+
+class AbsenceCertificate(models.Model):
+    """Modelo principal de Certificado de Ausencia"""
+    REASON_CHOICES = [
+        ('ENFERMEDAD', 'Enfermedad / Licencia Médica'),
+        ('FAMILIAR', 'Atención de Familiar'),
+        ('ESTUDIO', 'Licencia por Examen / Estudio'),
+        ('MUDANZA', 'Mudanza'),
+        ('OTRO', 'Otro Motivo'),
+    ]
+
+    employee = models.ForeignKey(
+        'Employee', 
+        on_delete=models.CASCADE, 
+        related_name='absence_certificates', 
+        verbose_name="Empleado"
+    )
+    reason = models.CharField(max_length=50, choices=REASON_CHOICES, verbose_name="Motivo de Ausencia")
+    start_date = models.DateField(verbose_name="Fecha de Inicio")
+    end_date = models.DateField(verbose_name="Fecha de Fin")
+    observations = models.TextField(blank=True, null=True, verbose_name="Observaciones")
+    created_at = models.DateTimeField(default=timezone.now, verbose_name="Fecha/Hora de Carga")
+
+    class Meta:
+        verbose_name = "Certificado de Ausencia"
+        verbose_name_plural = "Certificados de Ausencia"
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"Ausencia: {self.employee.last_name}, {self.employee.first_name} ({self.start_date} al {self.end_date})"
+
+
+class AbsenceCertificateDocument(models.Model):
+    """Modelo adjunto para soportar múltiples archivos (PDF, JPG, PNG) por certificado"""
+    certificate = models.ForeignKey(
+        AbsenceCertificate, 
+        on_delete=models.CASCADE, 
+        related_name='documents', 
+        verbose_name="Certificado"
+    )
+    file = models.FileField(upload_to=absence_document_path, verbose_name="Archivo (PDF / Imagen)")
+    uploaded_at = models.DateTimeField(auto_now_add=True, verbose_name="Fecha de Subida")
+
+    class Meta:
+        verbose_name = "Documento Adjunto de Ausencia"
+        verbose_name_plural = "Documentos Adjuntos de Ausencia"
+
+    def filename(self):
+        return os.path.basename(self.file.name)

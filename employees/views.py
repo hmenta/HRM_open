@@ -1,8 +1,8 @@
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
 from django.db.models import Q
-from .models import Employee
-from .forms import EmployeeForm, EmployeeDocumentFormSet
+from .models import Employee, AbsenceCertificate
+from .forms import EmployeeForm, EmployeeDocumentFormSet, AbsenceCertificateForm, AbsenceDocumentFormSet
 
 
 # ==========================================
@@ -112,3 +112,63 @@ def employee_detail_view(request, pk):
     """
     employee = get_object_or_404(Employee, pk=pk)
     return render(request, 'employees/employee_detail.html', {'employee': employee})
+
+# ==========================================
+# 5. VISTA GRAL. DEL PANEL DE AUSENCIAS
+# ==========================================
+
+@login_required
+def absence_list_view(request):
+    """Panel principal de ausencias con búsqueda por Legajo (ID) o Nombre/Apellido"""
+    query = request.GET.get('q', '').strip()
+    certificates = AbsenceCertificate.objects.select_related('employee').all()
+
+    if query:
+        certificates = certificates.filter(
+            Q(employee__id__exact=query if query.isdigit() else None) |
+            Q(employee__first_name__icontains=query) |
+            Q(employee__last_name__icontains=query) |
+            Q(employee__dni__icontains=query)
+        )
+
+    context = {
+        'certificates': certificates,
+        'query': query,
+    }
+    return render(request, 'absences/absence_list.html', context)
+
+
+
+# ==========================================
+# 5. VISTA DEL PANEL DE CARGA DE CERTIFICADOS DE AUSENCIAS
+# ==========================================
+
+@login_required
+def absence_create_view(request):
+    """Vista de alta de certificado de ausencia con carga de adjuntos múltiples"""
+    employee_id = request.GET.get('employee_id')
+    initial_data = {}
+    
+    if employee_id:
+        employee = get_object_or_404(Employee, id=employee_id)
+        initial_data['employee'] = employee
+
+    if request.method == 'POST':
+        form = AbsenceCertificateForm(request.POST)
+        formset = AbsenceDocumentFormSet(request.POST, request.FILES)
+        
+        if form.is_valid():
+            certificate = form.save()
+            formset = AbsenceDocumentFormSet(request.POST, request.FILES, instance=certificate)
+            if formset.is_valid():
+                formset.save()
+                return redirect('absence_list')
+    else:
+        form = AbsenceCertificateForm(initial=initial_data)
+        formset = AbsenceDocumentFormSet()
+
+    context = {
+        'form': form,
+        'formset': formset,
+    }
+    return render(request, 'absences/absence_form.html', context)

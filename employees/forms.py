@@ -1,6 +1,9 @@
 from django import forms
 from django.forms import inlineformset_factory, TextInput, ClearableFileInput
-from .models import Employee, EmployeeDocument
+from .models import AbsenceCertificate, AbsenceCertificateDocument, Employee, EmployeeDocument 
+
+
+# --- FORMSET PARA GESTIONAR EL LEGAJO DEL EMPLEADO ---
 
 class EmployeeForm(forms.ModelForm):
     class Meta:
@@ -56,4 +59,34 @@ EmployeeDocumentFormSet = inlineformset_factory(
         'title': TextInput(attrs={'class': 'form-control', 'placeholder': 'Ej: DNI, Título Secundario, Examen Médico'}),
         'document': ClearableFileInput(attrs={'class': 'form-control'}),
     }
+)
+
+# --- FORMSET PARA GESTIONAR LOS CERTIFICADOS DE AUSENCIA ---
+
+class AbsenceCertificateForm(forms.ModelForm):
+    class Meta:
+        model = AbsenceCertificate
+        fields = ['employee', 'reason', 'start_date', 'end_date', 'observations']
+        widgets = {
+            'employee': forms.Select(attrs={'class': 'form-select select2-enable'}),
+            'reason': forms.Select(attrs={'class': 'form-select'}),
+            'start_date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+            'end_date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+            'observations': forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'placeholder': 'Detalles adicionales...'}),
+        }
+
+class AbsenceDocumentForm(forms.ModelForm):
+    class Meta:
+        model = AbsenceCertificateDocument
+        fields = ['file']
+        widgets = {
+            'file': forms.FileInput(attrs={'class': 'form-control', 'accept': '.pdf,.jpg,.jpeg,.png'}),
+        }
+
+AbsenceDocumentFormSet = inlineformset_factory(
+    AbsenceCertificate,
+    AbsenceCertificateDocument,
+    form=AbsenceDocumentForm,
+    extra=2,
+    can_delete=True
 )

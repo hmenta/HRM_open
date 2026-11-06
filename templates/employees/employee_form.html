@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ action }} Legajo - HRM Open</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="bg-light">
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="{% url 'employee_list' %}">← Volver a Legajos</a>
+        </div>
+    </nav>
+
+    <div class="container my-5" style="max-width: 800px;">
+        <div class="card shadow-sm p-4">
+            <h2 class="mb-4 text-center">{{ action }} Legajo</h2>
+            
+            <form method="post" enctype="multipart/form-data" class="needs-validation" novalidate>
+                {% csrf_token %}
+                {{ form.non_field_errors }}
+                
+                <!-- Renderizado de los campos del formulario principal -->
+                {% for field in form %}
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">{{ field.label }}</label>
+                        {{ field }}
+
+                        <!-- Previsualización de la Foto actual -->
+                        {% if field.name == 'photo' and employee and employee.photo %}
+                            <div class="mt-2 p-2 border rounded bg-white d-inline-block">
+                                <p class="small text-muted mb-1">Foto actual:</p>
+                                <img src="{{ employee.photo.url }}" alt="Foto de perfil" class="rounded" style="max-height: 100px; object-fit: cover;">
+                            </div>
+                        {% endif %}
+
+                        {% if field.help_text %}
+                            <div class="form-text">{{ field.help_text }}</div>
+                        {% endif %}
+                        {% for error in field.errors %}
+                            <div class="text-danger small mt-1">{{ error }}</div>
+                        {% endfor %}
+                    </div>
+                {% endfor %}
+
+                <hr class="my-4">
+
+                <!-- ======================================================= -->
+                <!-- SECCIÓN DEL FORMSET PARA CARGAR MÚLTIPLES DOCUMENTOS    -->
+                <!-- ======================================================= -->
+                <h4 class="mb-3">Documentación Adjunta</h4>
+                <p class="text-muted small">Puedes cargar múltiples documentos indicando su título descriptivo y seleccionando el archivo correspondiente.</p>
+                
+                <!-- Management form obligatorio para que Django procese el formset correctamente -->
+                {{ formset.management_form }}
+                
+                <div class="row">
+                    {% for dict_form in formset %}
+                        <div class="card mb-3 p-3 bg-light border">
+                            {{ dict_form.id }}
+                            <div class="row align-items-center">
+                                <div class="col-md-5">
+                                    <label class="form-label small fw-bold">Título / Tipo de Documento</label>
+                                    {{ dict_form.title }}
+                                </div>
+                                <div class="col-md-5">
+                                    <label class="form-label small fw-bold">Archivo (PDF / Imagen)</label>
+                                    {{ dict_form.document }}
+                                </div>
+                                {% if formset.can_delete %}
+                                    <div class="col-md-2 text-center">
+                                        <label class="form-label small d-block text-danger fw-bold">Eliminar</label>
+                                        {{ dict_form.DELETE }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+
+                <div class="d-flex justify-content-between mt-4">
+                    <button type="submit" class="btn btn-success px-4 py-2">Guardar Legajo</button>
+                    <a href="{% url 'employee_list' %}" class="btn btn-secondary px-4 py-2">Cancelar</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</body>
+</html>

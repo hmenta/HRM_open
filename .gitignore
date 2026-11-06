@@ -1,0 +1,27 @@
+venv/
+__pycache__/
+db.sqlite3
+.env
+staticfiles/
+*.pyc
+
+# Entorno y secretos
+.env
+.env.*
+!.env.example
+
+# Base de datos local
+db.sqlite3
+
+# Archivos de usuarios
+media/
+
+# Python
+__pycache__/
+*.py[cod]
+venv/
+.venv/
+
+# Archivos locales
+.DS_Store
+Thumbs.db

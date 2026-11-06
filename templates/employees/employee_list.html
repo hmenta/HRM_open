@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Legajos - HRM Open</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="bg-light">
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="{% url 'dashboard' %}">← Volver al Panel</a>
+        </div>
+    </nav>
+
+    <div class="container my-4">
+        <!-- Título a la izquierda y Botón a la derecha alineados perfectamente -->
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2 class="mb-0">Legajos del Personal</h2>
+            <a href="{% url 'employee_create' %}" class="btn btn-success px-4 py-2">+ Nuevo Legajo</a>
+        </div>
+
+        <!-- Buscador -->
+        <div class="card shadow-sm p-3 mb-4">
+            <form method="get" class="row g-3">
+                <div class="col-md-10">
+                    <input type="text" name="q" class="form-control" placeholder="Buscar por nombre, apellido, cargo, departamento, DNI o legajo..." value="{{ query }}">
+                </div>
+                <div class="col-md-2">
+                    <button type="submit" class="btn btn-secondary w-100">Buscar</button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Tabla de Legajos -->
+        <div class="card shadow-sm">
+            <div class="card-body p-0">
+                <table class="table table-striped align-middle mb-0">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>Legajo / DNI</th>
+                            <th>Apellido y Nombre</th>
+                            <th>Cargo / Depto.</th>
+                            <th>Fechas (Ingreso / Egreso)</th>
+                            <th>Estado / Motivo</th>
+                            <th class="text-end">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for emp in employees %}
+                        <tr>
+                            <td>
+                                <span class="fw-bold">{{ emp.employee_leg|default:"-" }}</span><br>
+                                <small class="text-muted">DNI: {{ emp.dni|default:"-" }}</small>
+                            </td>
+                            <td>{{ emp.last_name }}, {{ emp.first_name }}</td>
+                            <td>
+                                {{ emp.position }}<br>
+                                <small class="text-muted">{{ emp.department }}</small>
+                            </td>
+                            <td>
+                                <small class="text-success fw-bold">Ingreso: {{ emp.hire_date }}</small><br>
+                                {% if emp.termination_date %}
+                                    <small class="text-danger fw-bold">Egreso: {{ emp.termination_date }}</small>
+                                {% else %}
+                                    <small class="text-muted">Egreso: -</small>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if emp.is_active %}
+                                    <span class="badge bg-success">Activo</span>
+                                {% else %}
+                                    <span class="badge bg-danger">Inactivo (Baja)</span>
+                                    {% if emp.termination_reason %}
+                                        <br><small class="text-muted">Motivo: {{ emp.termination_reason }}</small>
+                                    {% endif %}
+                                {% endif %}
+                            </td>
+                            <td class="text-end">
+                                <a href="{% url 'employee_detail' emp.pk %}" class="btn btn-sm btn-info text-white">Ver</a>
+                                <a href="{% url 'employee_update' emp.id %}" class="btn btn-sm btn-outline-primary">Editar</a>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="6" class="text-center py-4 text-muted">No se encontraron legajos registrados.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

@@ -11,6 +11,8 @@ from employees.views import (
     employee_detail_view,
     absence_list_view,
     absence_create_view,
+    absence_detail_view,
+    absence_update_view,
 )
 
 urlpatterns = [
@@ -26,4 +28,6 @@ urlpatterns = [
     # RUTAS DINÁMICAS 
     path('employees/editar/<int:pk>/', employee_update_view, name='employee_update'),
     path('employee/<int:pk>/', employee_detail_view, name='employee_detail'),
+    path('absences/<int:pk>/', views.absence_detail_view, name='absence_detail'),
+    path('absences/<int:pk>/editar/', views.absence_update_view, name='absence_update'),
 ]

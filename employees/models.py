@@ -203,37 +203,42 @@ def absence_document_path(instance, filename):
     # Organiza las descargas en: media/absence_certificates/legajo_<id>/<filename>
     return f'absence_certificates/legajo_{instance.certificate.employee.id}/{filename}'
 
+# Modelo del certificado
 class AbsenceCertificate(models.Model):
-    """Modelo principal de Certificado de Ausencia"""
-    REASON_CHOICES = [
-        ('ENFERMEDAD', 'Enfermedad / Licencia Médica'),
-        ('FAMILIAR', 'Atención de Familiar'),
-        ('ESTUDIO', 'Licencia por Examen / Estudio'),
-        ('MUDANZA', 'Mudanza'),
-        ('OTRO', 'Otro Motivo'),
-    ]
 
-    employee = models.ForeignKey(
-        'Employee', 
-        on_delete=models.CASCADE, 
-        related_name='absence_certificates', 
-        verbose_name="Empleado"
-    )
-    reason = models.CharField(max_length=50, choices=REASON_CHOICES, verbose_name="Motivo de Ausencia")
+    REASON_CHOICES = [
+            ('Enfermedad', 'Enfermedad'),
+            ('Accidente', 'Accidente'),
+            ('Trámite Personal', 'Trámite Personal'),
+            ('Estudio', 'Estudio'),
+            ('Familiar', 'Familiar'),
+            ('Otro', 'Otro'),
+        ]
+
+    employee = models.ForeignKey('Employee', on_delete=models.CASCADE, verbose_name="Empleado")
+    reason = models.CharField(max_length=50, choices=REASON_CHOICES, verbose_name="Motivo")
     start_date = models.DateField(verbose_name="Fecha de Inicio")
     end_date = models.DateField(verbose_name="Fecha de Fin")
     observations = models.TextField(blank=True, null=True, verbose_name="Observaciones")
-    created_at = models.DateTimeField(default=timezone.now, verbose_name="Fecha/Hora de Carga")
+    created_at = models.DateTimeField(auto_now_add=True)
 
-    class Meta:
-        verbose_name = "Certificado de Ausencia"
-        verbose_name_plural = "Certificados de Ausencia"
-        ordering = ['-created_at']
 
     def __str__(self):
-        return f"Ausencia: {self.employee.last_name}, {self.employee.first_name} ({self.start_date} al {self.end_date})"
+        return f"Ausencia de {self.employee} ({self.start_date} al {self.end_date})"
 
+# Modelo ÚNICO para los documentos adjuntos
+class AbsenceCertificateDocument(models.Model):
+    absence_certificate = models.ForeignKey(AbsenceCertificate, on_delete=models.CASCADE, related_name='documents')
+    file = models.FileField(upload_to='absences/', verbose_name="Archivo Adjunto")
+    
+    @property
+    def filename(self):
+        return os.path.basename(self.file.name)
 
+    def __str__(self):
+        return self.filename
+
+''' OLD
 class AbsenceCertificateDocument(models.Model):
     """Modelo adjunto para soportar múltiples archivos (PDF, JPG, PNG) por certificado"""
     certificate = models.ForeignKey(
@@ -251,3 +256,28 @@ class AbsenceCertificateDocument(models.Model):
 
     def filename(self):
         return os.path.basename(self.file.name)
+'''
+
+#class AbsenceCertificate(models.Model):
+#    employee = models.ForeignKey('Employee', on_delete=models.CASCADE, verbose_name="Empleado")
+#    reason = models.CharField(max_length=50, verbose_name="Motivo")
+#    start_date = models.DateField(verbose_name="Fecha de Inicio")
+#    end_date = models.DateField(verbose_name="Fecha de Fin")
+#    observations = models.TextField(blank=True, null=True, verbose_name="Observaciones")
+#    created_at = models.DateTimeField(auto_now_add=True)
+#
+#    def __str__(self):
+#        return f"Ausencia de {self.employee} ({self.start_date} al {self.end_date})"
+
+''' OLD CODE
+class AbsenceDocument(models.Model):
+    absence_certificate = models.ForeignKey(AbsenceCertificate, on_delete=models.CASCADE, related_name='documents')
+    file = models.FileField(upload_to='absences/', verbose_name="Archivo Adjunto")
+    
+    @property
+    def filename(self):
+        return os.path.basename(self.file.name)
+
+    def __str__(self):
+        return self.filename
+'''

@@ -1,8 +1,10 @@
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
 from django.db.models import Q
-from .models import Employee, AbsenceCertificate
-from .forms import EmployeeForm, EmployeeDocumentFormSet, AbsenceCertificateForm, AbsenceDocumentFormSet
+from .models import Employee
+from .forms import EmployeeForm, EmployeeDocumentFormSet
+from .models import AbsenceCertificate, AbsenceCertificateDocument
+from .forms import AbsenceCertificateForm, AbsenceDocumentFormSet
 
 
 # ==========================================
@@ -137,11 +139,42 @@ def absence_list_view(request):
     }
     return render(request, 'absences/absence_list.html', context)
 
+# Ver detalle del certificado.
+@login_required
+def absence_detail_view(request, pk):
+    certificate = get_object_or_404(AbsenceCertificate, pk=pk)
+    return render(request, 'absences/absence_detail.html', {'certificate': certificate})
 
 
 # ==========================================
 # 5. VISTA DEL PANEL DE CARGA DE CERTIFICADOS DE AUSENCIAS
 # ==========================================
+
+'''OLD 
+# Editar el detalle.
+@login_required
+def absence_update_view(request, pk):
+    certificate = get_object_or_404(AbsenceCertificate, pk=pk)
+    
+    if request.method == 'POST':
+        form = AbsenceCertificateForm(request.POST, request.FILES, instance=certificate)
+        formset = AbsenceDocumentFormSet(request.POST, request.FILES, instance=certificate)
+        
+        if form.is_valid() and formset.is_valid():
+            form.save()
+            formset.save()
+            return redirect('absence_detail', pk=certificate.pk)
+    else:
+        # Pasa la instancia tanto al form como al formset para mantener los datos y adjuntos existentes
+        form = AbsenceCertificateForm(instance=certificate)
+        formset = AbsenceDocumentFormSet(instance=certificate)
+    
+    return render(request, 'absences/absence_form.html', {
+        'form': form, 
+        'formset': formset, 
+        'certificate': certificate
+    })
+
 
 @login_required
 def absence_create_view(request):
@@ -172,3 +205,43 @@ def absence_create_view(request):
         'formset': formset,
     }
     return render(request, 'absences/absence_form.html', context)
+'''
+
+@login_required
+def absence_create_view(request):
+    if request.method == 'POST':
+        form = AbsenceCertificateForm(request.POST, request.FILES)
+        formset = AbsenceDocumentFormSet(request.POST, request.FILES)
+        if form.is_valid() and formset.is_valid():
+            certificate = form.save()
+            formset.instance = certificate
+            formset.save()
+            return redirect('absence_list')
+    else:
+        form = AbsenceCertificateForm()
+        formset = AbsenceDocumentFormSet()
+        
+    return render(request, 'absences/absence_form.html', {
+        'form': form,
+        'formset': formset
+    })
+
+@login_required
+def absence_update_view(request, pk):
+    certificate = get_object_or_404(AbsenceCertificate, pk=pk)
+    if request.method == 'POST':
+        form = AbsenceCertificateForm(request.POST, request.FILES, instance=certificate)
+        formset = AbsenceDocumentFormSet(request.POST, request.FILES, instance=certificate)
+        if form.is_valid() and formset.is_valid():
+            form.save()
+            formset.save()
+            return redirect('absence_detail', pk=certificate.pk)
+    else:
+        form = AbsenceCertificateForm(instance=certificate)
+        formset = AbsenceDocumentFormSet(instance=certificate)
+        
+    return render(request, 'absences/absence_form.html', {
+        'form': form,
+        'formset': formset,
+        'certificate': certificate
+    })

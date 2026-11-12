@@ -22,9 +22,19 @@
 
 
             <!-- Bloque dinámico de usuario y cierre de sesión -->
+
             <div class="d-flex align-items-center">
                 {% if request.user.is_authenticated %}
                     <span class="text-light me-3" style="color: white !important;">Hola, {{ request.user.first_name }}</span>
+
+                    <!-- <div class="d-flex ms-auto align-items-center"> -->
+                
+                    <span class="navbar navbar-expand-lg navbar-dark bg-dark">
+                    <div class="container-fluid">
+                        <a class="navbar-brand" href="{% url 'dashboard' %}">← </a>
+                    </div>
+                    </span>
+                
 
                     <!-- Ícono de configuración / Panel de Django -->
                 {% if request.user.is_staff or request.user.is_superuser %}
@@ -40,9 +50,6 @@
                     </span>
                 {% endif %}  
 
-                <div class="d-flex ms-auto align-items-center">
-                
-            </div>
                     <form action="{% url 'logout' %}" method="post" class="d-inline m-0">
                         {% csrf_token %}
                         <button type="submit" class="btn btn-outline-light btn-sm">Cerrar Sesión</button>

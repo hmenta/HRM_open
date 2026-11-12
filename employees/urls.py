@@ -24,6 +24,9 @@ urlpatterns = [
     path('accounts/logout/', auth_views.LogoutView.as_view(), name='logout'),
     path('absences/', views.absence_list_view, name='absence_list'),
     path('absences/create/', views.absence_create_view, name='absence_create'),
+    path('export/employees/', views.export_employees_csv, name='export_employees_csv'),
+    path('import/employees/', views.import_employees_csv, name='import_employees_csv'),
+    path('import/employees/template/', views.download_employee_template, name='download_employee_template'),
 
     # RUTAS DINÁMICAS 
     path('employees/editar/<int:pk>/', employee_update_view, name='employee_update'),

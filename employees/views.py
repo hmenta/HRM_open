@@ -6,6 +6,15 @@ from .forms import EmployeeForm, EmployeeDocumentFormSet
 from .models import AbsenceCertificate, AbsenceCertificateDocument
 from .forms import AbsenceCertificateForm, AbsenceDocumentFormSet
 
+# ESPECIFICOS PARA EXPORTACION E IMPORTACION DE DATOS #
+import csv
+import io
+from django.contrib import messages
+from django.db import transaction
+from django.http import HttpResponse
+from django.shortcuts import redirect, render
+from .forms import CSVImportForm
+
 
 # ==========================================
 # 0. VISTA DEL PANEL PRINCIPAL (DASHBOARD)
@@ -245,3 +254,138 @@ def absence_update_view(request, pk):
         'formset': formset,
         'certificate': certificate
     })
+
+#####################################################################
+# --- FUNCIONES DE EXPORTACIÓN E IMPORTACIÓN DE DATOS - LEGAJOS --- #
+#####################################################################
+
+from django.contrib.admin.views.decorators import staff_member_required
+
+@login_required
+@staff_member_required
+def export_employees_csv(request):
+    """Exporta todos los empleados activos/inactivos a un CSV UTF-8 compatible con Excel."""
+    response = HttpResponse(content_type='text/csv; charset=utf-8-sig')
+    response['Content-Disposition'] = 'attachment; filename="empleados_hrm.csv"'
+    
+    writer = csv.writer(response, delimiter=';')
+    # Cabeceras del CSV
+    writer.writerow([
+        'Legajo', 'DNI', 'CUIL', 'Nombre', 'Apellido', 'Email', 
+        'Teléfono', 'Puesto', 'Ciudad', 'Activo', 'Fecha Ingreso'
+    ])
+    
+    employees = Employee.objects.all().values_list(
+        'employee_leg', 'dni', 'cuil', 'first_name', 'last_name', 
+        'email', 'phone', 'position', 'city', 'is_active', 'hire_date'
+    )
+    
+    for emp in employees:
+        writer.writerow(emp)
+        
+    return response
+
+
+@login_required
+@staff_member_required
+def import_employees_csv(request):
+    """Importa empleados masivamente desde un archivo CSV con delimitador por punto y coma o coma."""
+    if request.method == 'POST':
+        form = CSVImportForm(request.POST, request.FILES)
+        if form.is_valid():
+            csv_file = request.FILES['csv_file']
+            
+            # Validar extensión
+            if not csv_file.name.endswith('.csv'):
+                messages.error(request, "El archivo debe tener formato .csv")
+                return redirect('import_employees_csv')
+            
+            try:
+                # Decodificar el archivo respetando UTF-8 - se utiliza sig para que no se rompa por los caracteres latinos.
+                decoded_file = csv_file.read().decode('utf-8-sig')
+                io_string = io.StringIO(decoded_file)
+                
+                # Detectar delimitador automáticamente (coma o punto y coma)
+                sample = io_string.read(2048)
+                io_string.seek(0)
+                sniffer = csv.Sniffer()
+                delimiter = ';' if ';' in sample else ','
+                
+                reader = csv.reader(io_string, delimiter=delimiter)
+                header = next(reader) # Saltar cabecera
+                
+                success_count = 0
+                error_count = 0
+                
+                with transaction.atomic():
+                    for row in reader:
+                        if not row or len(row) < 5:
+                            continue
+                        try:
+                            # Mapeo básico de columnas esperadas:
+                            # [Legajo, DNI, CUIL, Nombre, Apellido, Email, Teléfono, Puesto, Ciudad, Activo, Fecha Ingreso]
+                            leg, dni, cuil, first_name, last_name = row[0], row[1], row[2], row[3], row[4]
+                            email = row[5] if len(row) > 5 else ''
+                            phone = row[6] if len(row) > 6 else ''
+                            position = row[7] if len(row) > 7 else ''
+                            city = row[8] if len(row) > 8 else ''
+                            is_active = True if (len(row) > 9 and row[9].lower() in ['true', '1', 'si', 'sí', 'yes']) else True
+                            hire_date = row[10] if (len(row) > 10 and row[10]) else None
+                            
+                            Employee.objects.update_or_create(
+                                dni=dni,
+                                defaults={
+                                    'employee_leg': leg,
+                                    'cuil': cuil,
+                                    'first_name': first_name,
+                                    'last_name': last_name,
+                                    'email': email,
+                                    'phone': phone,
+                                    'position': position,
+                                    'city': city,
+                                    'is_active': is_active,
+                                    'hire_date': hire_date if hire_date else None,
+                                }
+                            )
+                            success_count += 1
+                        except Exception as e:
+                            error_count += 1
+                            
+                messages.success(request, f"Importación exitosa. Procesados correctamente: {success_count}. Errores: {error_count}.")
+                return redirect('employee_list')
+                
+            except Exception as e:
+                messages.error(request, f"Error al procesar el archivo CSV: {e}")
+                return redirect('import_employees_csv')
+    else:
+        form = CSVImportForm()
+        
+    return render(request, 'employees/csv_import.html', {'form': form, 'title': 'Importar Empleados desde CSV'})
+
+###############################################################
+## --- TEMPLATE PARA DESCARGA E IMPORTACIÓN DE EMPLEADOS --- ##
+###############################################################
+
+
+@login_required
+@staff_member_required
+def download_employee_template(request):
+    """Genera y descarga un archivo CSV modelo para la importación masiva de empleados."""
+    response = HttpResponse(content_type='text/csv; charset=utf-8-sig')
+    response['Content-Disposition'] = 'attachment; filename="plantilla_empleados_hrm.csv"'
+    
+    writer = csv.writer(response, delimiter=';')
+    
+    # Cabeceras requeridas por el importador
+    writer.writerow([
+        'Legajo', 'DNI', 'CUIL', 'Nombre', 'Apellido', 'Email', 
+        'Teléfono', 'Puesto', 'Ciudad', 'Activo', 'Fecha Ingreso'
+    ])
+    
+    # Fila de ejemplo orientativa para el usuario
+    writer.writerow([
+        'LEG-001', '35123456', '20-35123456-9', 'Juan', 'Pérez', 'juan.perez@example.com', 
+        '1122334455', 'Analista de RRHH', 'Buenos Aires', 'True', '2025-01-15'
+    ])
+    
+    return response

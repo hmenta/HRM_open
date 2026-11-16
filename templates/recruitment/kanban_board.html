@@ -1,0 +1,93 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>Tablero de Reclutamiento (Kanban)</h2>
+    </div>
+
+    <!-- Contenedor del Kanban -->
+    <div class="row flex-nowrap overflow-auto pb-4" style="min-height: 75vh;">
+        {% for key, data in board_data.items %}
+        <div class="col-md-3 col-lg-2">
+            <div class="card bg-light shadow-sm h-100">
+                <div class="card-header bg-white font-weight-bold text-primary d-flex justify-content-between align-items-center">
+                    {{ data.label }}
+                    <span class="badge bg-secondary rounded-pill">{{ data.applications|length }}</span>
+                </div>
+                
+                <!-- Zona donde se arrastran las tarjetas (Dropzone) -->
+                <div class="card-body kanban-column p-2" data-stage="{{ key }}" ondragover="allowDrop(event)" ondrop="drop(event)" style="min-height: 60vh;">
+                    {% for app in data.applications %}
+                    <div class="card mb-2 shadow-sm kanban-card border-left-primary" 
+                         draggable="true" 
+                         ondragstart="drag(event)" 
+                         id="app-{{ app.pk }}"
+                         data-id="{{ app.pk }}">
+                        <div class="card-body p-3">
+                            <h6 class="card-title font-weight-bold mb-1">
+                                <a href="#" class="text-dark text-decoration-none">
+                                    {{ app.candidate.first_name }} {{ app.candidate.last_name }}
+                                </a>
+                            </h6>
+                            <p class="card-text text-muted small mb-2">{{ app.position.title }}</p>
+                            <span class="badge bg-light text-dark border">{{ app.get_stage_display }}</span>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- Script nativo para Drag & Drop y comunicación AJAX con Django -->
+<script>
+function allowDrop(ev) {
+    ev.preventDefault();
+}
+
+function drag(ev) {
+    ev.dataTransfer.setData("text/plain", ev.currentTarget.dataset.id);
+}
+
+function drop(ev) {
+    ev.preventDefault();
+    let cardId = ev.dataTransfer.getData("text/plain");
+    let cardElement = document.getElementById("app-" + cardId);
+    
+    // Encontrar la columna destino
+    let column = ev.target.closest('.kanban-column');
+    if (!column) return;
+    
+    let newStage = column.dataset.stage;
+    let appId = cardId;
+
+    // Petición AJAX a Django
+    let formData = new FormData();
+    formData.append('new_stage', newStage);
+    formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+
+    fetch(`/recruitment/application/${appId}/move-ajax/`, {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json().then(data => ({status: response.status, body: data})))
+    .then(res => {
+        if (res.status === 200) {
+            // Mover visualmente la tarjeta a la nueva columna
+            column.appendChild(cardElement);
+            // Opcional: recargar o actualizar badges sutilmente
+            setTimeout(() => location.reload(), 300); 
+        } else {
+            alert("No permitido: " + res.body.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Ocurrió un error al actualizar la etapa.');
+    });
+}
+</script>
+{% endblock %}

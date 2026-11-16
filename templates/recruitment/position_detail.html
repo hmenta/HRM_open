@@ -1,0 +1,69 @@
+{% extends "recruitment/base.html" %}
+
+{% block title %}{{ position.title }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-start mb-3 flex-wrap gap-2">
+  <div>
+    <a href="{% url 'recruitment:position_list' %}" class="small text-decoration-none">← Volver a búsquedas</a>
+    <h1 class="h3 mb-1">{{ position.title }}</h1>
+    <div class="text-muted">
+      {{ position.client|default:"Sin cliente asignado" }} · {{ position.get_status_display }}
+    </div>
+  </div>
+  {% if user_role == "RRHH Administrador" or user_role == "Reclutador" %}
+    <a href="{% url 'recruitment:position_edit' position.pk %}" class="btn btn-outline-secondary btn-sm">Editar búsqueda</a>
+  {% endif %}
+</div>
+
+{% if position.description or position.requirements %}
+<div class="row g-3 mb-4">
+  {% if position.description %}
+  <div class="col-md-6">
+    <div class="card h-100 shadow-sm">
+      <div class="card-body">
+        <h2 class="h6 text-uppercase text-muted">Descripción</h2>
+        <p class="mb-0" style="white-space: pre-line">{{ position.description }}</p>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+  {% if position.requirements %}
+  <div class="col-md-6">
+    <div class="card h-100 shadow-sm">
+      <div class="card-body">
+        <h2 class="h6 text-uppercase text-muted">Requisitos</h2>
+        <p class="mb-0" style="white-space: pre-line">{{ position.requirements }}</p>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+</div>
+{% endif %}
+
+<h2 class="h5 mb-3">Flujo de selección</h2>
+<div class="row flex-nowrap overflow-auto pb-2 g-3">
+  {% for value, label, apps in columns %}
+  <div class="col" style="min-width: 220px;">
+    <div class="card shadow-sm h-100">
+      <div class="card-header d-flex justify-content-between bg-white">
+        <span class="fw-semibold">{{ label }}</span>
+        <span class="badge bg-secondary">{{ apps|length }}</span>
+      </div>
+      <ul class="list-group list-group-flush">
+        {% for app in apps %}
+        <li class="list-group-item">
+          <a href="{% url 'recruitment:candidate_detail' app.candidate.pk %}" class="text-decoration-none">
+            {{ app.candidate }}
+          </a>
+          <div class="small text-muted">{{ app.candidate.current_title|default:"" }}</div>
+        </li>
+        {% empty %}
+        <li class="list-group-item text-muted small">Sin postulantes</li>
+        {% endfor %}
+      </ul>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% endblock %}

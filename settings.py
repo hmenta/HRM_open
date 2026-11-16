@@ -19,6 +19,8 @@ INSTALLED_APPS = [
     'core',
     'accounts',
     'employees',
+    'recruitment',
+    'recruitment.apps.RecruitmentConfig',
 ]
 
 MIDDLEWARE = [
@@ -48,6 +50,8 @@ TEMPLATES = [
                 'core.context_processors.company_settings',
                 # ¡Esta línea para la configuración de Empresa!
                 'employees.context_processors.company_context',
+                # Context Processors para los niveles de usuario en el módulo de recruiting
+                'recruitment.context_processors.recruitment_roles',
             ],
         },
     },

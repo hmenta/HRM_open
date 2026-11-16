@@ -1,0 +1,85 @@
+{% extends "recruitment/base.html" %}
+
+{% block title %}Postulantes{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h1 class="h3 mb-0">Postulantes</h1>
+  {% if user_role == "RRHH Administrador" or user_role == "Reclutador" %}
+    <a href="{% url 'recruitment:candidate_create' %}" class="btn btn-primary">+ Nuevo postulante</a>
+  {% endif %}
+</div>
+
+<form method="get" class="card card-body shadow-sm mb-3">
+  <div class="row g-2 align-items-end">
+    <div class="col-md-5">
+      <label class="form-label small mb-1" for="q">Buscar</label>
+      <input type="search" id="q" name="q" value="{{ q }}" class="form-control"
+             placeholder="Nombre, email, puesto, habilidades o texto del CV">
+    </div>
+    <div class="col-md-3">
+      <label class="form-label small mb-1" for="position">Búsqueda</label>
+      <select id="position" name="position" class="form-select">
+        <option value="">Todas</option>
+        {% for p in positions %}
+          <option value="{{ p.pk }}" {% if sel_position == p.pk|stringformat:"s" %}selected{% endif %}>{{ p.title }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-md-2">
+      <label class="form-label small mb-1" for="stage">Etapa</label>
+      <select id="stage" name="stage" class="form-select">
+        <option value="">Todas</option>
+        {% for value, label in stages %}
+          <option value="{{ value }}" {% if sel_stage == value %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-md-2 d-flex gap-2">
+      <button class="btn btn-primary w-100" type="submit">Filtrar</button>
+      <a href="{% url 'recruitment:candidate_list' %}" class="btn btn-outline-secondary">Limpiar</a>
+    </div>
+  </div>
+</form>
+
+<div class="card shadow-sm">
+  <div class="table-responsive">
+    <table class="table table-hover align-middle mb-0">
+      <thead class="table-light">
+        <tr>
+          <th>Nombre</th>
+          <th>Email</th>
+          <th>Puesto actual</th>
+          <th class="text-center">Años exp.</th>
+          <th>Origen</th>
+          <th>CV</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for c in candidates %}
+        <tr>
+          <td class="fw-semibold">{{ c }}</td>
+          <td>{{ c.email }}</td>
+          <td>{{ c.current_title|default:"—" }}</td>
+          <td class="text-center">{{ c.years_experience|default:"—" }}</td>
+          <td>
+            {% if c.source == "portal" %}
+              <span class="badge bg-info text-dark">{{ c.get_source_display }}</span>
+            {% else %}
+              <span class="badge bg-light text-dark border">{{ c.get_source_display }}</span>
+            {% endif %}
+          </td>
+          <td>{% if c.cv_file %}<span class="text-success">✔</span>{% else %}<span class="text-muted">—</span>{% endif %}</td>
+          <td class="text-end">
+            <a href="{% url 'recruitment:candidate_detail' c.pk %}" class="btn btn-sm btn-outline-primary">Ver</a>
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="7" class="text-center text-muted py-4">No se encontraron postulantes.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

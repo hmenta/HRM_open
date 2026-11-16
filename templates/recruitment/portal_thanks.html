@@ -1,0 +1,24 @@
+{% extends "recruitment/base.html" %}
+
+{% block title %}¡Gracias por postularte!{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-md-8 col-lg-6">
+    <div class="card shadow-sm text-center">
+      <div class="card-body p-5">
+        <div class="display-6 text-success mb-3">✔</div>
+        <h1 class="h3">¡Recibimos tu CV!</h1>
+        <p class="text-muted mt-3">
+          Gracias por tu interés. Nuestro equipo de Recursos Humanos revisará tu perfil
+          y se comunicará con vos si tu experiencia se ajusta a una búsqueda.
+        </p>
+        <p class="small text-muted">
+          Tus datos se tratan con fines de selección de personal, según el consentimiento que nos diste.
+        </p>
+        <a href="{% url 'recruitment:portal_apply' %}" class="btn btn-outline-primary mt-3">Postularme a otra búsqueda</a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

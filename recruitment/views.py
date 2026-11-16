@@ -1,0 +1,269 @@
+import os
+
+from django.contrib import messages
+from django.db import transaction
+from django.db.models import Q
+from django.http import FileResponse, Http404
+from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
+from django.views.decorators.http import require_POST
+from django.contrib.auth.decorators import login_required
+from django.http import JsonResponse
+
+from .forms import CandidateForm, PortalApplyForm, PositionForm
+from .models import Application, Candidate, Position, StageLog
+from .permissions import ADMIN, ALL_ROLES, EDIT_ROLES, role_required
+from .services import enrich_from_cv, save_portal_candidate
+from .workflow import can_move, next_options
+
+
+def _form_page(request, form, heading, cancel_url):
+    return render(request, "recruitment/form.html", {
+        "form": form, "heading": heading, "cancel_url": cancel_url,
+    })
+
+
+# TABLERO KANBAN PARA EL PIPELINE DE SELECCIÓN
+
+@login_required
+def kanban_board_view(request):
+    stages = Application.Stage.choices
+    
+    board_data = {}
+    for key, label in stages:
+        board_data[key] = {
+            'label': label,
+            'applications': Application.objects.filter(stage=key).select_related('candidate', 'position')
+        }
+        
+    context = {
+        'board_data': board_data,
+        'stages': stages,
+    }
+    return render(request, 'recruitment/kanban_board.html', context)
+
+@login_required
+@require_POST
+def update_stage_ajax(request, pk):
+    application = get_object_or_404(Application, pk=pk)
+    new_stage = request.POST.get('new_stage')
+    
+    if can_move(application.stage, new_stage):
+        old_stage = application.stage
+        application.stage = new_stage
+        application.save()
+        StageLog.objects.create(
+            application=application,
+            from_stage=old_stage,
+            to_stage=new_stage,
+            changed_by=request.user,
+        )
+        return JsonResponse({'status': 'success', 'message': 'Etapa actualizada.'})
+    else:
+        return JsonResponse({'status': 'error', 'message': 'Transición no permitida.'}, status=400)
+
+
+# ---------- Búsquedas ----------
+
+@role_required(*ALL_ROLES)
+def position_list(request):
+    return render(request, "recruitment/positions.html", {"positions": Position.objects.all()})
+
+
+@role_required(*EDIT_ROLES)
+def position_create(request):
+    form = PositionForm(request.POST or None)
+    if request.method == "POST" and form.is_valid():
+        position = form.save(commit=False)
+        position.owner = request.user
+        position.save()
+        messages.success(request, "Búsqueda creada.")
+        return redirect("recruitment:position_detail", pk=position.pk)
+    return _form_page(request, form, "Nueva búsqueda", reverse("recruitment:position_list"))
+
+
+@role_required(*EDIT_ROLES)
+def position_edit(request, pk):
+    position = get_object_or_404(Position, pk=pk)
+    form = PositionForm(request.POST or None, instance=position)
+    if request.method == "POST" and form.is_valid():
+        form.save()
+        messages.success(request, "Búsqueda actualizada.")
+        return redirect("recruitment:position_detail", pk=position.pk)
+    return _form_page(request, form, "Editar búsqueda", reverse("recruitment:position_list"))
+
+
+@role_required(*ALL_ROLES)
+def position_detail(request, pk):
+    position = get_object_or_404(Position, pk=pk)
+    apps = list(position.applications.select_related("candidate"))
+    columns = [
+        (value, label, [a for a in apps if a.stage == value])
+        for value, label in Application.Stage.choices
+    ]
+    return render(request, "recruitment/position_detail.html", {
+        "position": position, "columns": columns,
+    })
+
+
+# ---------- Postulantes ----------
+
+@role_required(*ALL_ROLES)
+def candidate_list(request):
+    qs = Candidate.objects.all()
+    q = request.GET.get("q", "").strip()
+    position = request.GET.get("position", "")
+    stage = request.GET.get("stage", "")
+
+    if q:
+        qs = qs.filter(
+            Q(first_name__icontains=q) | Q(last_name__icontains=q) | Q(email__icontains=q)
+            | Q(current_title__icontains=q) | Q(skills__icontains=q) | Q(cv_text__icontains=q)
+        )
+    if position:
+        qs = qs.filter(applications__position_id=position).distinct()
+    if stage:
+        qs = qs.filter(applications__stage=stage).distinct()
+
+    return render(request, "recruitment/candidates.html", {
+        "candidates": qs[:300],
+        "q": q,
+        "positions": Position.objects.all(),
+        "stages": Application.Stage.choices,
+        "sel_position": position,
+        "sel_stage": stage,
+    })
+
+
+@role_required(*EDIT_ROLES)
+def candidate_create(request):
+    form = CandidateForm(request.POST or None, request.FILES or None)
+    if request.method == "POST" and form.is_valid():
+        candidate = form.save(commit=False)
+        candidate.source = Candidate.Source.MANUAL
+        candidate.save()
+        if candidate.cv_file:
+            enrich_from_cv(candidate)
+        messages.success(request, "Postulante cargado.")
+        return redirect("recruitment:candidate_detail", pk=candidate.pk)
+    return _form_page(request, form, "Nuevo postulante", reverse("recruitment:candidate_list"))
+
+
+@role_required(*EDIT_ROLES)
+def candidate_edit(request, pk):
+    candidate = get_object_or_404(Candidate, pk=pk)
+    form = CandidateForm(request.POST or None, request.FILES or None, instance=candidate)
+    if request.method == "POST" and form.is_valid():
+        candidate = form.save()
+        if "cv_file" in form.changed_data and candidate.cv_file:
+            enrich_from_cv(candidate)
+        messages.success(request, "Postulante actualizado.")
+        return redirect("recruitment:candidate_detail", pk=candidate.pk)
+    return _form_page(
+        request, form, 
+        f"Editar postulante: {candidate}", 
+        reverse("recruitment:candidate_detail", args=[candidate.pk])
+    )
+
+
+@role_required(*ALL_ROLES)
+def candidate_detail(request, pk):
+    candidate = get_object_or_404(Candidate, pk=pk)
+    applications = list(candidate.applications.select_related("position"))
+    
+    for app in applications:
+        app.next_options = next_options(app.stage)
+
+    logs = StageLog.objects.filter(application__candidate=candidate).select_related(
+        "application__position", "changed_by"
+    )
+
+    positions_open = Position.objects.filter(status=Position.Status.OPEN)
+
+    return render(request, "recruitment/candidate_detail.html", {
+        "candidate": candidate,
+        "applications": applications,
+        "logs": logs,
+        "positions_open": positions_open,
+    })
+
+
+@role_required(*ALL_ROLES)
+def candidate_cv(request, pk):
+    candidate = get_object_or_404(Candidate, pk=pk)
+    if not candidate.cv_file:
+        raise Http404("El candidato no tiene CV adjunto.")
+    return FileResponse(candidate.cv_file.open("rb"), as_attachment=True)
+
+
+@role_required(*EDIT_ROLES)
+@require_POST
+def assign_candidate_position(request, pk):
+    candidate = get_object_or_404(Candidate, pk=pk)
+    position_id = request.POST.get("position_id")
+    
+    if position_id:
+        position = get_object_or_404(Position, pk=position_id)
+        application, created = Application.objects.get_or_create(
+            candidate=candidate,
+            position=position,
+            defaults={"stage": Application.Stage.NEW}
+        )
+        if created:
+            messages.success(request, f"Candidato postulado exitosamente a {position.title}.")
+        else:
+            messages.warning(request, "El candidato ya se encontraba postulado a esta búsqueda.")
+            
+    return redirect("recruitment:candidate_detail", pk=candidate.pk)
+
+
+# ---------- Acciones de Flujo y Portal ----------
+
+@role_required(*EDIT_ROLES)
+@require_POST
+def application_move(request, pk):
+    application = get_object_or_404(Application, pk=pk)
+    to_stage = request.POST.get("to_stage")
+    comment = request.POST.get("comment", "").strip()
+
+    current_stage = str(application.stage).strip().lower()
+    target_stage = str(to_stage).strip().lower()
+
+    if target_stage and can_move(current_stage, target_stage):
+        old_stage = application.stage
+        application.stage = target_stage
+        application.save()
+
+        StageLog.objects.create(
+            application=application,
+            from_stage=old_stage,
+            to_stage=target_stage,
+            changed_by=request.user,
+            comment=comment,
+        )
+        messages.success(request, "¡Etapa actualizada con éxito!")
+    else:
+        messages.error(request, f"Transición no permitida de '{current_stage}' a '{target_stage}'.")
+
+    return redirect("recruitment:candidate_detail", pk=application.candidate.pk)
+
+
+def portal_apply(request):
+    form = PortalApplyForm(request.POST or None, request.FILES or None)
+    if request.method == "POST" and form.is_valid():
+        save_portal_candidate({
+            "first_name": form.cleaned_data["first_name"],
+            "last_name": form.cleaned_data["last_name"],
+            "email": form.cleaned_data["email"],
+            "phone": form.cleaned_data.get("phone", ""),
+            "cv_file": form.cleaned_data["cv_file"],
+            "position": form.cleaned_data.get("position"),
+        })
+        messages.success(request, "¡CV recibido con éxito!")
+        return redirect("recruitment:portal_thanks")
+
+    return _form_page(request, form, "Portal de Empleo · Postulación", "/")
+
+
+def portal_thanks(request):
+    return render(request, "recruitment/portal_thanks.html")

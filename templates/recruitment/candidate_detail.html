@@ -38,11 +38,11 @@
           <dt class="col-sm-4">Habilidades</dt><dd class="col-sm-8" style="white-space: pre-line">{{ candidate.skills|default:"—" }}</dd>
           <dt class="col-sm-4">Formación</dt><dd class="col-sm-8" style="white-space: pre-line">{{ candidate.education|default:"—" }}</dd>
           <dt class="col-sm-4">Resumen</dt><dd class="col-sm-8" style="white-space: pre-line">{{ candidate.summary|default:"—" }}</dd>
-          <dt class="col-sm-4">Consentimiento</dt>
+          <!--<dt class="col-sm-4">Consentimiento</dt>
           <dd class="col-sm-8">
             {% if candidate.consent_given %}<span class="badge bg-success">Otorgado</span>
             {% else %}<span class="badge bg-danger">Pendiente</span>{% endif %}
-          </dd>
+          </dd> -->
         </dl>
       </div>
     </div>
@@ -82,38 +82,51 @@
       </div>
     </div>
 
-    <!-- Listado de Postulaciones Activas y gestión de sus etapas -->
+   <!-- Listado de Postulaciones Activas y gestión de sus etapas -->
     <div class="card shadow-sm">
       <div class="card-header bg-white fw-semibold">Postulaciones Activas</div>
       <div class="card-body">
-        {% for app in applications %}
-        <div class="border rounded p-3 mb-3 bg-light">
-          <div class="d-flex justify-content-between align-items-center mb-2">
-            <div>
-              <a href="{% url 'recruitment:position_detail' app.position.pk %}" class="fw-semibold text-decoration-none">{{ app.position.title }}</a>
-              <div class="mt-1">
-                <span class="badge bg-secondary">Actual: {{ app.get_stage_display }}</span>
+        {% if applications %}
+          {% for app in applications %}
+          <div class="border rounded p-3 mb-3 bg-light">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+              <div>
+                <a href="{% url 'recruitment:position_detail' app.position.pk %}" class="fw-semibold text-decoration-none">{{ app.position.title }}</a>
+                <div class="mt-1">
+                  <span class="badge bg-secondary">Actual: {{ app.get_stage_display }}</span>
+                </div>
               </div>
             </div>
+            
+            <!-- Formulario de cambio de etapa con selector completo y comentarios -->
+            <form method="post" action="{% url 'recruitment:application_move' app.pk %}" class="mt-3">
+              {% csrf_token %}
+              <div class="mb-2">
+                <select name="to_stage" class="form-select form-select-sm" required>
+                  <option value="" disabled selected>Seleccionar nueva etapa...</option>
+                  {% for value, label in app.next_options %}
+                    <option value="{{ value }}" {% if value == app.stage %}selected{% endif %}>{{ label }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+              <div class="mb-2">
+                <input type="text" name="comment" class="form-control form-control-sm" placeholder="Comentario u observación (opcional)..." maxlength="300">
+              </div>
+              <button type="submit" class="btn btn-primary btn-sm w-100 mb-2">Actualizar etapa</button>
+            </form>
+
+            <!-- Botón para desafectar al candidato de esta búsqueda -->
+            <form method="post" action="{% url 'recruitment:application_delete' app.pk %}" onsubmit="return confirm('¿Estás seguro de desafectar al candidato de esta búsqueda? Se eliminará su historial en este puesto.');">
+              {% csrf_token %}
+              <button type="submit" class="btn btn-outline-danger btn-sm w-100">Desafectar de esta búsqueda</button>
+            </form>
           </div>
-          
-          <!-- Formulario de cambio de etapa dinámico -->
-          <form method="post" action="{% url 'recruitment:application_move' app.pk %}" class="d-flex gap-2 align-items-center mt-3">
-            {% csrf_token %}
-            <select name="to_stage" class="form-select form-select-sm" required>
-              <option value="" disabled selected>Seleccionar siguiente etapa...</option>
-              {% for value, label in app.next_options %}
-                <option value="{{ value }}">{{ label }}</option>
-              {% endfor %}
-            </select>
-            <button type="submit" class="btn btn-primary btn-sm" {% if not app.next_options %}disabled{% endif %}>Mover</button>
-          </form>
-        </div>
-        {% empty %}
-        <p class="text-muted small mb-0">Este candidato todavía no está asignado a ninguna búsqueda.</p>
-        {% endfor %}
+          {% endfor %}
+        {% else %}
+          <p class="text-muted small mb-0 fst-italic">Sin vacante asignada actualmente.</p>
+        {% endif %}
       </div>
     </div>
-  </div>
+
 </div>
 {% endblock %}

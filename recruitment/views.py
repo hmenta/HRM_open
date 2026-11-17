@@ -165,15 +165,47 @@ def candidate_edit(request, pk):
         reverse("recruitment:candidate_detail", args=[candidate.pk])
     )
 
+# Para desafectar a un candidato de una búsqueda.
+@role_required(*EDIT_ROLES)
+@require_POST
+def application_delete(request, pk):
+    application = get_object_or_404(Application, pk=pk)
+    candidate_pk = application.candidate.pk
+    position_title = application.position.title
+    
+    old_stage = application.stage
+    
+    # En lugar de borrar, pasamos la postulación a estado "baja" para conservar el historial
+    application.stage = Application.Stage.BAJA
+    application.save()
+    
+    # Registramos el movimiento en el historial (StageLog)
+    StageLog.objects.create(
+        application=application,
+        from_stage=old_stage,
+        to_stage=Application.Stage.BAJA,
+        changed_by=request.user,
+        comment="Candidato desafectado de la búsqueda",
+    )
+    
+    messages.success(request, f"Candidato desafectado de la búsqueda '{position_title}' (historial conservado).")
+    return redirect("recruitment:candidate_detail", pk=candidate_pk)
 
 @role_required(*ALL_ROLES)
 def candidate_detail(request, pk):
     candidate = get_object_or_404(Candidate, pk=pk)
-    applications = list(candidate.applications.select_related("position"))
+    
+    # Excluimos las postulaciones cerradas/finalizadas para que solo aparezcan las activas
+    applications = list(
+        candidate.applications.exclude(
+            stage__in=[Application.Stage.BAJA, Application.Stage.NO_APLICA, Application.Stage.HIRED]
+        ).select_related("position")
+    )
     
     for app in applications:
         app.next_options = next_options(app.stage)
 
+    # El historial (logs) sigue trayendo TODO el recorrido histórico del candidato sin perder nada
     logs = StageLog.objects.filter(application__candidate=candidate).select_related(
         "application__position", "changed_by"
     )
@@ -204,15 +236,40 @@ def assign_candidate_position(request, pk):
     
     if position_id:
         position = get_object_or_404(Position, pk=position_id)
-        application, created = Application.objects.get_or_create(
-            candidate=candidate,
-            position=position,
-            defaults={"stage": Application.Stage.NEW}
-        )
-        if created:
-            messages.success(request, f"Candidato postulado exitosamente a {position.title}.")
+        
+        # Buscamos si ya existía una postulación previa (activa, dada de baja o cerrada) para esta búsqueda
+        application = Application.objects.filter(candidate=candidate, position=position).first()
+        
+        if application:
+            old_stage = application.stage
+            # Si estaba dada de baja o cerrada, la reactivamos a la etapa "nuevo"
+            application.stage = Application.Stage.NEW
+            application.save()
+            
+            # Registramos el movimiento en el historial
+            StageLog.objects.create(
+                application=application,
+                from_stage=old_stage,
+                to_stage=Application.Stage.NEW,
+                changed_by=request.user,
+                comment="Candidato reasignado / reactivado en la búsqueda",
+            )
+            messages.success(request, f"Candidato reasignado a la búsqueda '{position.title}'.")
         else:
-            messages.warning(request, "El candidato ya se encontraba postulado a esta búsqueda.")
+            # Si nunca estuvo postulado a esta búsqueda, creamos el registro nuevo
+            application = Application.objects.create(
+                candidate=candidate,
+                position=position,
+                stage=Application.Stage.NEW
+            )
+            StageLog.objects.create(
+                application=application,
+                from_stage="",
+                to_stage=Application.Stage.NEW,
+                changed_by=request.user,
+                comment="Postulación creada",
+            )
+            messages.success(request, f"Candidato postulado exitosamente a '{position.title}'.")
             
     return redirect("recruitment:candidate_detail", pk=candidate.pk)
 

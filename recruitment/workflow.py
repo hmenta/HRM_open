@@ -14,17 +14,25 @@ TRANSITIONS = {
 
 
 def can_move(current, target):
-    if not current or not target:
+    from .models import Application
+    if not target:
         return False
-    c = str(current).strip().lower()
-    t = str(target).strip().lower()
-    return t in TRANSITIONS.get(c, set())
+    valid_stages = [v for v, _ in Application.Stage.choices]
+    # Permite moverse a cualquier etapa válida del sistema (hacia adelante, hacia atrás o reabrir)
+    return target in valid_stages 
+   
+   # Modelo anterior de pipeline con avance hacia adelante o descarte del candidato.
+   # if not current or not target:
+   #     return False
+   # c = str(current).strip().lower()
+   # t = str(target).strip().lower()
+   # return t in TRANSITIONS.get(c, set())
 
 
 def next_options(current):
     from .models import Application
-    if not current:
-        return []
-    c = str(current).strip().lower()
-    allowed_set = TRANSITIONS.get(c, set())
-    return [(v, label) for v, label in Application.Stage.choices if v in allowed_set]
+    #if not current:
+    #    return []
+    #c = str(current).strip().lower()
+    #allowed_set = TRANSITIONS.get(c, set())
+    return [(v, label) for v, label in Application.Stage.choices]

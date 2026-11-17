@@ -22,6 +22,7 @@ urlpatterns = [
     path('candidates/<int:pk>/edit/', views.candidate_edit, name='candidate_edit'),
     path('candidates/<int:pk>/cv/', views.candidate_cv, name='candidate_cv'),
     path('candidates/<int:pk>/assign/', views.assign_candidate_position, name='assign_candidate_position'),
+    path('applications/<int:pk>/delete/', views.application_delete, name='application_delete'), 
 
     # Portal de Empleo
     path('portal/apply/', views.portal_apply, name='portal_apply'),

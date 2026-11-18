@@ -7,7 +7,8 @@ from django.utils import timezone
 
 
 class CompanySettings(models.Model):
-    name = models.CharField(max_length=150, default="Empresa Demostración S.A.")
+    name = models.CharField(max_length=150, default="Demo S.A.")
+    logo = models.ImageField(upload_to='company/', blank=True, null=True)
     tax_id = models.CharField(max_length=50, blank=True, null=True)
     address = models.TextField(blank=True, null=True)
 

@@ -263,11 +263,18 @@
             <button type="button" class="btn btn-outline-light btn-sm" id="sidebarToggleBtn" aria-label="Abrir o cerrar menú" title="Menú">
                 <i class="bi bi-list"></i>
             </button>
+<<<<<<< Updated upstream
             <a class="brand-text d-none d-sm-inline" href="{% url 'dashboard' %}">
                 {{ company.company_name|default:"HRM Open" }}
+=======
+            <a class="brand-text d-flex align-items-center gap-2 text-decoration-none" href="{% url 'dashboard' %}">
+                <!-- Logo fijo de HRM Open para la barra superior -->
+                <!-- <img src="{% static 'hrm_open/media/hrm_open_logo.png' %}" alt="HRM Open" style="height: 32px; width: auto; object-fit: contain; background: #fff; border-radius: 4px; padding: 2px;"> -->
+                <span class="text-white fw-bold d-none d-sm-inline">HRM Open</span>
+>>>>>>> Stashed changes
             </a>
         </div>
-
+    
         <div class="d-flex align-items-center">
             {% if request.user.is_authenticated %}
                 <span class="text-light me-3 d-none d-md-inline">

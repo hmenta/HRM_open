@@ -1,4 +1,4 @@
-import os
+﻿import os
 from pathlib import Path
 import dj_database_url
 from decouple import config
@@ -16,8 +16,8 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'core',
-    'accounts',
+    'core.apps.CoreConfig',
+    'accounts.apps.AccountsConfig',
     'employees',
     'recruitment',
     #'recruitment.apps.RecruitmentConfig',
@@ -50,8 +50,8 @@ TEMPLATES = [
                 'core.context_processors.company_settings',
                 # ¡Esta línea para la configuración de Empresa!
                 'employees.context_processors.company_context',
-                # Context Processors para los niveles de usuario en el módulo de recruiting
-                'recruitment.context_processors.recruitment_roles',
+                # Roles y capacidades de acceso
+                'accounts.context_processors.role_context',
             ],
         },
     },

@@ -1,4 +1,4 @@
-import os
+﻿import os
 
 from django.contrib import messages
 from django.db import transaction
@@ -25,7 +25,7 @@ def _form_page(request, form, heading, cancel_url):
 
 # TABLERO KANBAN PARA EL PIPELINE DE SELECCIÓN
 
-@login_required
+@role_required(*ALL_ROLES)
 def kanban_board_view(request):
     stages = Application.Stage.choices
     
@@ -42,7 +42,7 @@ def kanban_board_view(request):
     }
     return render(request, 'recruitment/kanban_board.html', context)
 
-@login_required
+@role_required(*EDIT_ROLES)
 @require_POST
 def update_stage_ajax(request, pk):
     application = get_object_or_404(Application, pk=pk)
@@ -306,6 +306,7 @@ def application_move(request, pk):
 
 
 def portal_apply(request):
+    """Frontend público de empleo: sin login ni menú del HRM interno."""
     form = PortalApplyForm(request.POST or None, request.FILES or None)
     if request.method == "POST" and form.is_valid():
         save_portal_candidate({
@@ -316,11 +317,14 @@ def portal_apply(request):
             "cv_file": form.cleaned_data["cv_file"],
             "position": form.cleaned_data.get("position"),
         })
-        messages.success(request, "¡CV recibido con éxito!")
-        return redirect("recruitment:portal_thanks")
+        return redirect("empleo_thanks")
 
-    return _form_page(request, form, "Portal de Empleo · Postulación", "/")
+    open_positions = Position.objects.filter(status=Position.Status.OPEN).order_by("-created_at")[:8]
+    return render(request, "portal/apply.html", {
+        "form": form,
+        "open_positions": open_positions,
+    })
 
 
 def portal_thanks(request):
-    return render(request, "recruitment/portal_thanks.html")
+    return render(request, "portal/thanks.html")

@@ -1,11 +1,11 @@
-{% extends "recruitment/base.html" %}
+﻿{% extends "recruitment/base.html" %}
 
 {% block title %}Postulantes{% endblock %}
 
-{% block content %}
+{% block recruitment_content %}
 <div class="d-flex justify-content-between align-items-center mb-3">
   <h1 class="h3 mb-0">Postulantes</h1>
-  {% if user_role == "RRHH Administrador" or user_role == "Reclutador" %}
+  {% if can_manage_recruitment %}
     <a href="{% url 'recruitment:candidate_create' %}" class="btn btn-primary">+ Nuevo postulante</a>
   {% endif %}
 </div>

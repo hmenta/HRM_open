@@ -1,11 +1,11 @@
-{% extends "recruitment/base.html" %}
+﻿{% extends "recruitment/base.html" %}
 
 {% block title %}Búsquedas{% endblock %}
 
-{% block content %}
+{% block recruitment_content %}
 <div class="d-flex justify-content-between align-items-center mb-3">
   <h1 class="h3 mb-0">Búsquedas</h1>
-  {% if user_role == "RRHH Administrador" or user_role == "Reclutador" %}
+  {% if can_manage_recruitment %}
     <a href="{% url 'recruitment:position_create' %}" class="btn btn-primary">+ Nueva búsqueda</a>
   {% endif %}
 </div>
@@ -41,7 +41,7 @@
           <td class="text-center">{{ position.applications.count }}</td>
           <td class="text-end">
             <a href="{% url 'recruitment:position_detail' position.pk %}" class="btn btn-sm btn-outline-primary">Ver</a>
-            {% if user_role == "RRHH Administrador" or user_role == "Reclutador" %}
+            {% if can_manage_recruitment %}
               <a href="{% url 'recruitment:position_edit' position.pk %}" class="btn btn-sm btn-outline-secondary">Editar</a>
             {% endif %}
           </td>

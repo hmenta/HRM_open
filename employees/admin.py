@@ -1,11 +1,13 @@
-from django.contrib import admin
-from .models import Employee, TerminationReasonCatalog, Area, Sector, SocialWork, CollectiveAgreement, AbsenceCertificate, AbsenceCertificateDocument
+﻿from django.contrib import admin
+from .models import Employee, TerminationReasonCatalog, Area, Sector, SocialWork, CollectiveAgreement, AbsenceCertificate, AbsenceCertificateDocument, Payslip
 
 # Registramos los modelos / campos en el admin de Django
 
 @admin.register(Employee)
 class EmployeeAdmin(admin.ModelAdmin):
-    list_display = ('id', 'last_name', 'first_name', 'position', 'area_rel', 'sector_rel', 'is_active')
+    list_display = ('id', 'last_name', 'first_name', 'position', 'area_rel', 'sector_rel', 'is_active', 'user')
+    search_fields = ('last_name', 'first_name', 'dni', 'employee_leg', 'email')
+    raw_id_fields = ('user',)
 
 @admin.register(Area)
 class AreaAdmin(admin.ModelAdmin):
@@ -49,3 +51,10 @@ class AbsenceCertificateAdmin(admin.ModelAdmin):
     list_display = ('id', 'employee', 'reason', 'start_date', 'end_date', 'created_at')
     search_fields = ('employee__first_name', 'employee__last_name', 'employee__id')
     inlines = [AbsenceCertificateDocumentInline]
+
+
+@admin.register(Payslip)
+class PayslipAdmin(admin.ModelAdmin):
+    list_display = ('id', 'employee', 'year', 'month', 'uploaded_by', 'created_at')
+    list_filter = ('year', 'month')
+    search_fields = ('employee__last_name', 'employee__first_name', 'employee__dni', 'original_filename')

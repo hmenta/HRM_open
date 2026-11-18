@@ -1,4 +1,4 @@
-{% extends "dashboard.html" %}
+﻿{% extends "dashboard.html" %}
 
 {% block content %}
 
@@ -11,7 +11,7 @@
         </div>
 
         <!-- Bloque exclusivo para Administradores: Botones CSV debajo de Nuevo Legajo -->
-        {% if request.user.is_staff %}
+        {% if can_import_export_employees %}
         <div class="mb-4 d-flex gap-2">
             <a href="{% url 'export_employees_csv' %}" class="btn btn-outline-success btn-sm">
                 <i class="bi bi-download"></i> Exportar Registros CSV

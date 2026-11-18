@@ -1,4 +1,4 @@
-import logging
+﻿import logging
 
 from django.db import transaction
 from django.utils import timezone
@@ -65,4 +65,9 @@ def save_portal_candidate(data):
                 )
 
     enrich_from_cv(candidate)
+    try:
+        from core.notifications import notify_new_cv
+        notify_new_cv(candidate, position=data.get('position'))
+    except Exception:
+        logger.exception('No se pudo enviar notificación de nuevo CV')
     return candidate

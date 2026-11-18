@@ -1,0 +1,80 @@
+﻿{% extends "dashboard.html" %}
+
+{% block title %}Correo · Configuraciones{% endblock %}
+
+{% block content %}
+<div class="container my-3" style="max-width: 900px;">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="mb-0">Configuración de correo</h2>
+        <a href="{% url 'settings_hub' %}" class="btn btn-outline-secondary btn-sm">← Volver</a>
+    </div>
+
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags|default:'info' }}">{{ message }}</div>
+        {% endfor %}
+    {% endif %}
+
+    <div class="card shadow-sm mb-4">
+        <div class="card-body p-4">
+            <form method="post" novalidate>
+                {% csrf_token %}
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label">Nombre del remitente</label>
+                        {{ form.from_name }}
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Email remitente</label>
+                        {{ form.from_email }}
+                    </div>
+                    <div class="col-md-8">
+                        <label class="form-label">Servidor SMTP</label>
+                        {{ form.host }}
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Puerto</label>
+                        {{ form.port }}
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Usuario SMTP</label>
+                        {{ form.username }}
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Contraseña / App Password</label>
+                        {{ form.password }}
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-check">{{ form.use_tls }} <label class="form-check-label">Usar TLS</label></div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-check">{{ form.use_ssl }} <label class="form-check-label">Usar SSL</label></div>
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label">Plantilla HTML del mail</label>
+                        {{ form.html_template }}
+                        <div class="form-text">Variables disponibles: company_name, subject, body, year (entre llaves dobles).</div>
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-primary mt-4">Guardar</button>
+            </form>
+        </div>
+    </div>
+
+    <div class="card shadow-sm">
+        <div class="card-body p-4">
+            <h5>Enviar correo de prueba</h5>
+            <form method="post" action="{% url 'settings_email_test' %}" class="row g-2 align-items-end">
+                {% csrf_token %}
+                <div class="col-md-8">
+                    <label class="form-label">Email destino</label>
+                    <input type="email" name="test_email" class="form-control" value="{{ request.user.email }}" required>
+                </div>
+                <div class="col-md-4">
+                    <button type="submit" class="btn btn-outline-primary w-100">Enviar prueba</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

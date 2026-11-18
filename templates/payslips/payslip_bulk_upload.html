@@ -1,0 +1,104 @@
+﻿{% extends "dashboard.html" %}
+
+{% block title %}{{ title }} · HRM Open{% endblock %}
+
+{% block content %}
+<div class="container my-3" style="max-width: 900px;">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="mb-0">{{ title }}</h2>
+        <a href="{% url 'payslip_list' %}" class="btn btn-outline-secondary btn-sm">← Volver</a>
+    </div>
+
+    <div class="alert alert-info">
+        <strong>Cómo funciona la asociación automática</strong>
+        <ol class="mb-0 mt-2">
+            <li>Elegí el <strong>mes y año</strong> de la liquidación.</li>
+            <li>Subí un <strong>ZIP</strong> con todos los PDF, o varios PDF juntos.</li>
+            <li>Cada archivo se asocia al legajo si el nombre contiene el <strong>DNI</strong>, <strong>CUIL</strong> o <strong>legajo</strong>.</li>
+        </ol>
+        <div class="mt-2 small">
+            Ejemplos de nombres: <code>30123456.pdf</code>, <code>20-30123456-9.pdf</code>, <code>LEG-001.pdf</code>, <code>recibo_30123456_noviembre.pdf</code>
+        </div>
+    </div>
+
+    <div class="card shadow-sm mb-4">
+        <div class="card-body p-4">
+            <form method="post" enctype="multipart/form-data" novalidate>
+                {% csrf_token %}
+                {% if form.non_field_errors %}
+                    <div class="alert alert-danger">{{ form.non_field_errors }}</div>
+                {% endif %}
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label" for="{{ form.year.id_for_label }}">Año</label>
+                        {{ form.year }}
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label" for="{{ form.month.id_for_label }}">Mes</label>
+                        {{ form.month }}
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label" for="{{ form.pdf_files.id_for_label }}">PDFs individuales</label>
+                        {{ form.pdf_files }}
+                        <div class="form-text">{{ form.pdf_files.help_text }}</div>
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label" for="{{ form.zip_file.id_for_label }}">ZIP con PDFs</label>
+                        {{ form.zip_file }}
+                        <div class="form-text">{{ form.zip_file.help_text }}</div>
+                    </div>
+                    <div class="col-12">
+                        <div class="form-check">
+                            {{ form.replace_existing }}
+                            <label class="form-check-label" for="{{ form.replace_existing.id_for_label }}">
+                                {{ form.replace_existing.label }}
+                            </label>
+                        </div>
+                    </div>
+                </div>
+                <div class="mt-4">
+                    <button type="submit" class="btn btn-success">Procesar y asociar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    {% if results %}
+    <div class="row g-3">
+        <div class="col-md-6">
+            <div class="card shadow-sm border-success">
+                <div class="card-header bg-success text-white">
+                    Asociados ({{ results.matched|length }}) — {{ results.created }} nuevos, {{ results.replaced }} reemplazados
+                </div>
+                <ul class="list-group list-group-flush">
+                    {% for row in results.matched %}
+                    <li class="list-group-item small">
+                        <strong>{{ row.filename }}</strong><br>
+                        → {{ row.employee }} <span class="badge bg-light text-dark">{{ row.match_by }}</span>
+                        <span class="badge bg-secondary">{{ row.status }}</span>
+                    </li>
+                    {% empty %}
+                    <li class="list-group-item text-muted">Ninguno</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card shadow-sm border-warning">
+                <div class="card-header bg-warning">Sin asociar ({{ results.unmatched|length }})</div>
+                <ul class="list-group list-group-flush">
+                    {% for row in results.unmatched %}
+                    <li class="list-group-item small">
+                        <strong>{{ row.filename }}</strong><br>
+                        <span class="text-muted">{{ row.reason }}</span>
+                    </li>
+                    {% empty %}
+                    <li class="list-group-item text-muted">Ninguno</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

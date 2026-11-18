@@ -1,4 +1,4 @@
-from django.contrib import admin
+﻿from django.contrib import admin
 from django.urls import path
 from django.contrib.auth import views as auth_views
 from . import views
@@ -13,6 +13,13 @@ from employees.views import (
     absence_create_view,
     absence_detail_view,
     absence_update_view,
+    reports_view,
+    payslip_list_view,
+    payslip_upload_view,
+    payslip_bulk_upload_view,
+    payslip_view_file,
+    payslip_download,
+    payslip_delete_view,
 )
 
 urlpatterns = [
@@ -27,6 +34,13 @@ urlpatterns = [
     path('export/employees/', views.export_employees_csv, name='export_employees_csv'),
     path('import/employees/', views.import_employees_csv, name='import_employees_csv'),
     path('import/employees/template/', views.download_employee_template, name='download_employee_template'),
+    path('reports/', reports_view, name='reports'),
+    path('payslips/', payslip_list_view, name='payslip_list'),
+    path('payslips/cargar/', payslip_upload_view, name='payslip_upload'),
+    path('payslips/carga-masiva/', payslip_bulk_upload_view, name='payslip_bulk_upload'),
+    path('payslips/<int:pk>/ver/', payslip_view_file, name='payslip_view'),
+    path('payslips/<int:pk>/descargar/', payslip_download, name='payslip_download'),
+    path('payslips/<int:pk>/eliminar/', payslip_delete_view, name='payslip_delete'),
 
     # RUTAS DINÁMICAS 
     path('employees/editar/<int:pk>/', employee_update_view, name='employee_update'),

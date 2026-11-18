@@ -1,0 +1,48 @@
+﻿{% extends "dashboard.html" %}
+
+{% block title %}{{ title }} · HRM Open{% endblock %}
+
+{% block content %}
+<div class="container my-3" style="max-width: 720px;">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="mb-0">{{ title }}</h2>
+        <a href="{% url 'payslip_list' %}" class="btn btn-outline-secondary btn-sm">← Volver</a>
+    </div>
+
+    <div class="card shadow-sm">
+        <div class="card-body p-4">
+            <form method="post" enctype="multipart/form-data" novalidate>
+                {% csrf_token %}
+                {% if form.non_field_errors %}
+                    <div class="alert alert-danger">{{ form.non_field_errors }}</div>
+                {% endif %}
+                <div class="row g-3">
+                    <div class="col-12">
+                        <label class="form-label" for="{{ form.employee.id_for_label }}">Colaborador</label>
+                        {{ form.employee }}
+                        {% for e in form.employee.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label" for="{{ form.year.id_for_label }}">Año</label>
+                        {{ form.year }}
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label" for="{{ form.month.id_for_label }}">Mes</label>
+                        {{ form.month }}
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label" for="{{ form.file.id_for_label }}">Archivo PDF</label>
+                        {{ form.file }}
+                        <div class="form-text">{{ form.file.help_text }}</div>
+                        {% for e in form.file.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
+                    </div>
+                </div>
+                <div class="d-flex gap-2 mt-4">
+                    <button type="submit" class="btn btn-primary">Guardar recibo</button>
+                    <a href="{% url 'payslip_bulk_upload' %}" class="btn btn-outline-success">Ir a carga masiva</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

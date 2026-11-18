@@ -1,4 +1,5 @@
-import os
+﻿import os
+from django.conf import settings
 from django.db import models
 from django.utils import timezone
 
@@ -132,6 +133,16 @@ class Employee(models.Model):
 
     # Archivos multimedia (Se mantiene la foto del colaborador)
     photo = models.ImageField(upload_to='employees/photos/', verbose_name="Fotografía", blank=True, null=True)
+
+    # Vínculo opcional con usuario del sistema (para ver recibos propios, etc.)
+    user = models.OneToOneField(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='employee_profile',
+        verbose_name='Usuario del sistema',
+    )
     
     # ⚠️ CAMBIO CLAVE: Se eliminó el campo 'document' individual de aquí.
     # Ahora la documentación se gestiona de forma relacional mediante el modelo 'EmployeeDocument' de abajo.
@@ -145,6 +156,58 @@ class Employee(models.Model):
         verbose_name = "Legajo"
         verbose_name_plural = "Legajos"
         ordering = ['last_name', 'first_name']
+
+
+def payslip_upload_path(instance, filename):
+    return f'payslips/{instance.year}/{instance.month:02d}/{filename}'
+
+
+class Payslip(models.Model):
+    """Recibo de sueldo asociado a un legajo para un período (mes/año)."""
+
+    employee = models.ForeignKey(
+        Employee,
+        on_delete=models.CASCADE,
+        related_name='payslips',
+        verbose_name='Empleado',
+    )
+    year = models.PositiveIntegerField(verbose_name='Año')
+    month = models.PositiveSmallIntegerField(verbose_name='Mes')
+    file = models.FileField(upload_to=payslip_upload_path, verbose_name='Archivo PDF')
+    original_filename = models.CharField(max_length=255, blank=True, verbose_name='Nombre original')
+    uploaded_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='uploaded_payslips',
+        verbose_name='Cargado por',
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = 'Recibo de sueldo'
+        verbose_name_plural = 'Recibos de sueldo'
+        ordering = ['-year', '-month', 'employee__last_name']
+        constraints = [
+            models.UniqueConstraint(
+                fields=['employee', 'year', 'month'],
+                name='uniq_payslip_employee_period',
+            ),
+        ]
+
+    def __str__(self):
+        return f'{self.employee} — {self.month:02d}/{self.year}'
+
+    @property
+    def period_label(self):
+        months = [
+            '', 'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+            'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre',
+        ]
+        name = months[self.month] if 1 <= self.month <= 12 else str(self.month)
+        return f'{name} {self.year}'
+
 
 
 # --- MODELO CONFIGURACIÓN EMPRESA ---

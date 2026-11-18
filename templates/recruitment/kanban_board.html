@@ -1,4 +1,4 @@
-{% extends "recruitment/base.html" %}
+﻿{% extends "recruitment/base.html" %}
 
 {% block recruitment_content %}
 <div class="container-fluid py-4">
@@ -69,7 +69,7 @@ function drop(ev) {
     formData.append('new_stage', newStage);
     formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
 
-    fetch(`/recruitment/application/${appId}/move-ajax/`, {
+    fetch(`/recruitment/applications/${appId}/update-stage-ajax/`, {
         method: 'POST',
         body: formData
     })

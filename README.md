@@ -8,6 +8,10 @@ Human Resourses Management for Small and Medium Businesses
     dj-database-url>=2.1.0
     gunicorn>=21.2.0
     whitenoise>=6.5.0  pip install dj_database_url whitenoise
+    pip install pypdf pdfplumber python-docx requests
+    ollama= qwen2.5:3b  ollama pull qwen2.5:3b
+
+    
 
 **How to install on local virtual enviroment for programming:**
 

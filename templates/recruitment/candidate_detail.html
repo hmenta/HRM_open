@@ -10,16 +10,33 @@
     <h1 class="h3 mb-1">{{ candidate }}</h1>
     <div class="text-muted">{{ candidate.current_title|default:"Sin puesto actual" }} · {{ candidate.email }}</div>
   </div>
-  <div class="d-flex gap-2">
-    {% if candidate.cv_file %}
-      <a href="{% url 'recruitment:candidate_cv' candidate.pk %}" class="btn btn-outline-primary btn-sm">Descargar CV</a>
-    {% endif %}
-    {% if can_manage_recruitment %}
-      <a href="{% url 'recruitment:candidate_edit' candidate.pk %}" class="btn btn-outline-secondary btn-sm">Editar</a>
-    {% endif %}
-  </div>
+  
+  <div class="d-inline-flex align-items-center gap-2 flex-wrap">
+  {% if candidate.cv_file and can_manage_recruitment %}
+    <!-- Mismo alto y alineación que los enlaces <a> -->
+    <form method="post" action="{% url 'recruitment:candidate_parse_cv' candidate.pk %}" class="d-inline-flex align-items-center m-0">
+      {% csrf_token %}
+      <button type="submit" class="btn btn-outline-success btn-sm d-inline-flex align-items-center" style="height: 34px; white-space: nowrap;">
+        Importar CV con IA
+      </button>
+    </form>
+  {% endif %}
+
+  {% if candidate.cv_file %}
+    <a href="{% url 'recruitment:candidate_cv' candidate.pk %}" class="btn btn-outline-primary btn-sm d-inline-flex align-items-center" style="height: 34px; white-space: nowrap;">
+      Descargar CV
+    </a>
+  {% endif %}
+
+  {% if can_manage_recruitment %}
+    <a href="{% url 'recruitment:candidate_edit' candidate.pk %}" class="btn btn-outline-secondary btn-sm d-inline-flex align-items-center" style="height: 34px; white-space: nowrap;">
+      Editar Perfil
+    </a>
+  {% endif %}
+</div>
 </div>
 
+<!-- Datos del Postulante / Candidato -->
 <div class="row g-4">
   <div class="col-lg-7">
     <div class="card shadow-sm mb-4">
@@ -65,7 +82,7 @@
   </div>
 
   <div class="col-lg-5">
-    <!-- Formulario para asignar al candidato a una búsqueda abierta -->
+    <!-- Formulario para asignar al candidato a una búsqueda en curso -->
     <div class="card shadow-sm mb-4">
       <div class="card-header bg-white fw-semibold">Asignar a nueva búsqueda</div>
       <div class="card-body">
@@ -116,7 +133,7 @@
             </form>
 
             <!-- Botón para desafectar al candidato de esta búsqueda -->
-            <form method="post" action="{% url 'recruitment:application_delete' app.pk %}" onsubmit="return confirm('¿Estás seguro de desafectar al candidato de esta búsqueda? Se eliminará su historial en este puesto.');">
+            <form method="post" action="{% url 'recruitment:application_delete' app.pk %}" onsubmit="return confirm('¿Estás seguro de desafectar al candidato de esta búsqueda? El historial se conservará.');">
               {% csrf_token %}
               <button type="submit" class="btn btn-outline-danger btn-sm w-100">Desafectar de esta búsqueda</button>
             </form>
@@ -127,6 +144,7 @@
         {% endif %}
       </div>
     </div>
+
 
 </div>
 {% endblock %}

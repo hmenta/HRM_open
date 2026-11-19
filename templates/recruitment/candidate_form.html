@@ -1,0 +1,52 @@
+{% extends "recruitment/base.html" %}
+
+{% block recruitment_title %}Nuevo postulante{% endblock %}
+
+{% block recruitment_content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h1 class="h3 mb-0">Nuevo postulante</h1>
+  <a href="{% url 'recruitment:candidate_list' %}" class="btn btn-outline-secondary btn-sm">← Volver a postulantes</a>
+</div>
+
+<form method="post" enctype="multipart/form-data" class="card card-body shadow-sm">
+  {% csrf_token %}
+
+  {% if form.non_field_errors %}
+    <div class="alert alert-danger">{{ form.non_field_errors }}</div>
+  {% endif %}
+
+  {% if form.cv_file %}
+    <div class="mb-3">
+      <label for="{{ form.cv_file.id_for_label }}" class="form-label">{{ form.cv_file.label }}</label>
+      <div class="d-flex flex-wrap align-items-center gap-2">
+        {{ form.cv_file }}
+        <button type="submit" name="parse_cv_now" value="1" class="btn btn-outline-success btn-sm">
+          Importar CV con IA
+        </button>
+      </div>
+      {% if form.cv_file.errors %}
+        <div class="text-danger small mt-1">{{ form.cv_file.errors }}</div>
+      {% endif %}
+    </div>
+  {% endif %}
+
+  <div class="row g-3">
+    {% for field in form %}
+      {% if field.name != "cv_file" %}
+        <div class="col-md-6">
+          <label for="{{ field.id_for_label }}" class="form-label">{{ field.label }}</label>
+          {{ field }}
+          {% if field.errors %}
+            <div class="text-danger small mt-1">{{ field.errors }}</div>
+          {% endif %}
+        </div>
+      {% endif %}
+    {% endfor %}
+  </div>
+
+  <div class="d-flex align-items-center gap-2 mt-4">
+    <button type="submit" class="btn btn-primary">Guardar postulante</button>
+    <a href="{% url 'recruitment:candidate_list' %}" class="btn btn-outline-secondary">Cancelar</a>
+  </div>
+</form>
+{% endblock %}

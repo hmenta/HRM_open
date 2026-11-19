@@ -108,3 +108,16 @@ SESSION_SAVE_EVERY_REQUEST = True
 SESSION_COOKIE_HTTPONLY = True
 SESSION_COOKIE_SECURE = not DEBUG
 SESSION_COOKIE_SAMESITE = 'Lax'
+
+# ==========================================
+# CONFIGURACIÓN AGENTE LOCAL DE IA (CV PARSER)
+# ==========================================
+
+# Endpoint HTTP local de Ollama (100% self-hosted, sin servicios externos)
+OLLAMA_BASE_URL = config('OLLAMA_BASE_URL', default='http://localhost:11434/api/generate')
+
+# Modelo local recomendado para extracción JSON en español/inglés (ej. qwen2.5:7b, llama3.1:8b, qwen2.5:3b)
+OLLAMA_CV_MODEL = config('OLLAMA_CV_MODEL', default='qwen2.5:3b')
+
+# Tiempo máximo de espera por inferencia en segundos (ajustable según CPU/GPU del equipo)
+OLLAMA_TIMEOUT_SECONDS = config('OLLAMA_TIMEOUT_SECONDS', default=90, cast=int)

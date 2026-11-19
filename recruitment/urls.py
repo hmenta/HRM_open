@@ -23,8 +23,11 @@ urlpatterns = [
     path('candidates/<int:pk>/cv/', views.candidate_cv, name='candidate_cv'),
     path('candidates/<int:pk>/assign/', views.assign_candidate_position, name='assign_candidate_position'),
     path('applications/<int:pk>/delete/', views.application_delete, name='application_delete'), 
+    # Agente de IA para lectura de CVs
+    path("candidates/<int:pk>/parse-cv/", views.candidate_parse_cv, name="candidate_parse_cv"),
 
     # Portal de Empleo
     path('portal/apply/', views.portal_apply, name='portal_apply'),
     path('portal/thanks/', views.portal_thanks, name='portal_thanks'),
+
 ]

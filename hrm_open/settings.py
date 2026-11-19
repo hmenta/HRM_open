@@ -103,3 +103,8 @@ SESSION_COOKIE_AGE = 600
 
 # 3. Hace que el temporizador de inactividad se reinicie con cada interacción o solicitud del usuario
 SESSION_SAVE_EVERY_REQUEST = True
+
+# AGENTE DE IA LOCAL PARA LECTURA DE CVS
+OLLAMA_BASE_URL = config("OLLAMA_BASE_URL", default="http://localhost:11434/api/generate")
+OLLAMA_CV_MODEL = config("OLLAMA_CV_MODEL", default="qwen2.5:3b")
+OLLAMA_TIMEOUT_SECONDS = config("OLLAMA_TIMEOUT_SECONDS", default=90, cast=int)

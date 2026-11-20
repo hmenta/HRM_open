@@ -11,29 +11,39 @@
     <div class="text-muted">{{ candidate.current_title|default:"Sin puesto actual" }} · {{ candidate.email }}</div>
   </div>
   
-  <div class="d-inline-flex align-items-center gap-2 flex-wrap">
-  {% if candidate.cv_file and can_manage_recruitment %}
-    <!-- Mismo alto y alineación que los enlaces <a> -->
-    <form method="post" action="{% url 'recruitment:candidate_parse_cv' candidate.pk %}" class="d-inline-flex align-items-center m-0">
-      {% csrf_token %}
-      <button type="submit" class="btn btn-outline-success btn-sm d-inline-flex align-items-center" style="height: 34px; white-space: nowrap;">
-        Importar CV con IA
-      </button>
-    </form>
-  {% endif %}
+  <div class="d-inline-flex align-items-stretch gap-2">
+  <!-- Importar CV con IA -->
+  <button type="button" class="btn btn-outline-success btn-sm d-inline-flex align-items-center">
+    Importar CV con IA
+  </button>
 
+  <!-- Descargar CV -->
   {% if candidate.cv_file %}
     <a href="{% url 'recruitment:candidate_cv' candidate.pk %}" class="btn btn-outline-primary btn-sm d-inline-flex align-items-center" style="height: 34px; white-space: nowrap;">
       Descargar CV
     </a>
   {% endif %}
 
+  <!-- Editar Perfil -->
   {% if can_manage_recruitment %}
-    <a href="{% url 'recruitment:candidate_edit' candidate.pk %}" class="btn btn-outline-secondary btn-sm d-inline-flex align-items-center" style="height: 34px; white-space: nowrap;">
+    <a href="{% url 'recruitment:candidate_edit' candidate.pk %}"
+       class="btn btn-outline-secondary btn-sm d-inline-flex align-items-center">
       Editar Perfil
     </a>
+
+    <!-- Eliminar -->
+    <form method="post"
+          action="{% url 'recruitment:candidate_delete' candidate.pk %}"
+          class="m-0 d-inline-flex align-items-stretch"
+          onsubmit="return confirm('¿Eliminar permanentemente a {{ candidate }} de la lista de postulantes? Esta acción no se puede deshacer.');">
+      {% csrf_token %}
+      <button type="submit"
+              class="btn btn-outline-danger btn-sm d-inline-flex align-items-center">
+        Eliminar
+      </button>
+    </form>
   {% endif %}
-</div>
+
 </div>
 
 <!-- Datos del Postulante / Candidato -->

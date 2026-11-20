@@ -1,7 +1,10 @@
 ﻿{% with url_name=request.resolver_match.url_name|default:'' ns=request.resolver_match.namespace|default:'' %}
 {% load static %}
 <aside id="appSidebar" class="app-sidebar" aria-label="Navegación principal">
-    <div class="sidebar-brand d-flex flex-column align-items-center justify-content-center text-center px-2">
+    
+    <!-- Opcional para poner el logo de la empresa que implementa el soft en el tope de la barra lateral.
+
+     <div class="sidebar-brand d-flex flex-column align-items-center justify-content-center text-center px-2">
         {% if company_config.logo %}
             <img src="{{ company_config.logo.url }}" alt="{{ company_config.name }}" class="sidebar-logo mb-1">
         {% else %}
@@ -9,9 +12,11 @@
                 <i class="bi bi-building"></i>
             </div>
         {% endif %}
-        <!-- Opcional para poner el nombre de la empresa configurado desde el panel de Administración Django  
-        <span class="sidebar-brand-text text-truncate w-100">{{ company_config.name }}</span> -->
-    </div>
+
+        <!-- Opcional para poner el nombre de la empresa en formato texto configurado desde el panel de Administración Django  
+    
+        <span class="sidebar-brand-text text-truncate w-100">{{ company_config.name }}</span>
+    </div> -->
 
     <nav class="sidebar-nav flex-grow-1">
         <a class="sidebar-link {% if url_name == 'dashboard' %}active{% endif %}" href="{% url 'dashboard' %}" title="Inicio">

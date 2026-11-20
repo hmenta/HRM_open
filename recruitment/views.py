@@ -151,7 +151,7 @@ def position_detail(request, pk):
     })
 
 
-# ---------- Postulantes ----------
+# ---------- Postulantes / Candidatos ----------
 
 @role_required(*ALL_ROLES)
 def candidate_list(request):
@@ -179,6 +179,16 @@ def candidate_list(request):
         "sel_stage": stage,
     })
 
+@role_required(*EDIT_ROLES)
+@require_POST
+def candidate_delete(request, pk):
+    candidate = get_object_or_404(Candidate, pk=pk)
+    candidate_name = str(candidate)
+
+    candidate.delete()
+
+    messages.success(request, f"Postulante '{candidate_name}' eliminado de la base.")
+    return redirect("recruitment:candidate_list")
 
 @role_required(*EDIT_ROLES)
 def candidate_create(request):

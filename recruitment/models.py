@@ -15,6 +15,8 @@ class Position(models.Model):
     description = models.TextField("Descripción", blank=True)
     requirements = models.TextField("Requisitos", blank=True)
     status = models.CharField("Estado", max_length=10, choices=Status.choices, default=Status.OPEN)
+    start_date = models.DateField("Fecha de inicio", null=True, blank=True)
+    closing_date = models.DateField("Fecha de cierre", null=True, blank=True)
     owner = models.ForeignKey(
         settings.AUTH_USER_MODEL, verbose_name="Responsable", on_delete=models.SET_NULL,
         null=True, blank=True, related_name="positions",
@@ -68,10 +70,10 @@ class Application(models.Model):
     class Stage(models.TextChoices):
         NEW = "nuevo", "Nuevo"
         REVIEW = "en_revision", "En revisión"
-        INTERVIEW_1 = "entrevista_1", "Entrevista 1"
-        INTERVIEW_2 = "entrevista_2", "Entrevista 2"
+        INTERVIEW_1 = "entrevista_1", "1° Entrevista"
+        INTERVIEW_2 = "entrevista_2", "2° Entrevista"
         PSICO = "psico", "Psicotécnico"
-        MEDICAL = "medico", "Médico"
+        MEDICAL = "medico", "En Médico"
         OFFER = "oferta", "Oferta"
         HIRED = "contratado", "Contratado"
         NO_APLICA = "no_aplica", "No Aplica"

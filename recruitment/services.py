@@ -74,7 +74,7 @@ def enrich_from_cv(candidate: Candidate, overwrite: bool = False) -> bool:
     - Con `overwrite=False`: completa solo los campos vacíos y actualiza `cv_text`.
     - Con `overwrite=True`: reemplaza los campos con valor extraído del CV.
     """
-    if not candidate.cv_file:
+    if not candidate.cv_file or not candidate.cv_file.name:
         return False
 
     try:

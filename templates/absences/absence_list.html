@@ -11,15 +11,34 @@
         </div>
     </div>
 
-    <!-- Buscador por Legajo o Nombre -->
+    <!-- Buscador y ordenamiento -->
     <div class="card mb-4 shadow-sm p-4">
-        <div class="card-body">
-            <form method="GET" action="{% url 'absence_list' %}" class="row g-3">
-                <div class="col-md-10">
-                    <input type="text" name="q" value="{{ query }}" class="form-control" placeholder="Buscar por N° de Legajo, Nombre, Apellido o DNI...">
+        <div class="card-body p-0">
+            <form method="GET" action="{% url 'absence_list' %}" class="row g-2 align-items-end">
+                <div class="col-12 col-md-7">
+                    <label for="id_q" class="form-label small mb-1">Buscar</label>
+                    <input
+                        id="id_q"
+                        type="text"
+                        name="q"
+                        value="{{ query }}"
+                        class="form-control"
+                        placeholder="Buscar por N° de Legajo, Nombre, Apellido o DNI..."
+                    >
                 </div>
-                <div class="col-md-2 d-grid">
-                    <button type="submit" class="btn btn-dark">Buscar</button>
+
+                <div class="col-12 col-md-3">
+                    <label for="id_sort" class="form-label small mb-1">Ordenar por</label>
+                    <select id="id_sort" name="sort" class="form-select">
+                        {% for sort_key, sort_label in sort_options %}
+                            <option value="{{ sort_key }}" {% if current_sort == sort_key %}selected{% endif %}>{{ sort_label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="col-12 col-md-2 d-flex gap-2">
+                    <button type="submit" class="btn btn-dark w-100">Buscar</button>
+                        <a href="{% url 'absence_list' %}" class="btn btn-outline-secondary" title="Limpiar filtros">Limpiar</a>
                 </div>
             </form>
         </div>
@@ -32,13 +51,29 @@
                 <table class="table table-hover align-middle mb-0">
                     <thead class="table-dark">
                         <tr>
-                            <th>Fecha Carga</th>
+                            <th>
+                                <a href="?q={{ query|urlencode }}&sort={% if current_sort == '-created_at' %}created_at{% else %}-created_at{% endif %}" class="text-decoration-none text-reset">
+                                    Fecha Carga {% if current_sort == "-created_at" %}↓{% elif current_sort == "created_at" %}↑{% endif %}
+                                </a>
+                            </th>
                             <th>Legajo</th>
-                            <th>Empleado</th>
-                            <th>Motivo</th>
-                            <th>Período Ausencia</th>
+                            <th>
+                                <a href="?q={{ query|urlencode }}&sort={% if current_sort == 'employee' %}-employee{% else %}employee{% endif %}" class="text-decoration-none text-reset">
+                                    Empleado {% if current_sort == "employee" %}↑{% elif current_sort == "-employee" %}↓{% endif %}
+                                </a>
+                            </th>
+                            <th>
+                                <a href="?q={{ query|urlencode }}&sort={% if current_sort == 'reason' %}-reason{% else %}reason{% endif %}" class="text-decoration-none text-reset">
+                                    Motivo {% if current_sort == "reason" %}↑{% elif current_sort == "-reason" %}↓{% endif %}
+                                </a>
+                            </th>
+                            <th>
+                                <a href="?q={{ query|urlencode }}&sort={% if current_sort == '-start_date' %}start_date{% else %}-start_date{% endif %}" class="text-decoration-none text-reset">
+                                    Período Ausencia {% if current_sort == "-start_date" %}↓{% elif current_sort == "start_date" %}↑{% endif %}
+                                </a>
+                            </th>
                             <th>Adjuntos</th>
-                            <th class="text-center">Acciones</th> <!-- Nueva columna -->
+                            <th class="text-center">Acciones</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -59,11 +94,9 @@
                                 {% endfor %}
                             </td>
                             <td class="text-center">
-                                <!-- Botón Ver / Detalle -->
                                 <a href="{% url 'absence_detail' cert.id %}" class="btn btn-sm btn-outline-info" title="Ver">
                                     <i class="bi bi-eye"></i>
                                 </a>
-                                <!-- Botón Editar -->
                                 <a href="{% url 'absence_update' cert.id %}" class="btn btn-sm btn-outline-primary" title="Editar">
                                     <i class="bi bi-pencil-square"></i>
                                 </a>

@@ -10,40 +10,51 @@
     <h1 class="h3 mb-1">{{ candidate }}</h1>
     <div class="text-muted">{{ candidate.current_title|default:"Sin puesto actual" }} · {{ candidate.email }}</div>
   </div>
-  
-  <div class="d-inline-flex align-items-stretch gap-2">
-  <!-- Importar CV con IA -->
-  <button type="button" class="btn btn-outline-success btn-sm d-inline-flex align-items-center">
-    Importar CV con IA
-  </button>
 
-  <!-- Descargar CV -->
-  {% if candidate.cv_file %}
-    <a href="{% url 'recruitment:candidate_cv' candidate.pk %}" class="btn btn-outline-primary btn-sm d-inline-flex align-items-center" style="height: 34px; white-space: nowrap;">
-      Descargar CV
-    </a>
-  {% endif %}
+  <div class="d-inline-flex flex-wrap align-items-stretch gap-2">
+    <!-- Importar / Procesar CV ya adjunto con IA -->
+    {% if can_manage_recruitment and candidate.cv_file and candidate.cv_file.name %}
+      <form method="post"
+            action="{% url 'recruitment:candidate_parse_cv' candidate.pk %}"
+            class="m-0 d-inline-flex align-items-stretch">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-outline-success btn-sm d-inline-flex align-items-center">
+          Importar CV con IA
+        </button>
+      </form>
+    {% endif %}
 
-  <!-- Editar Perfil -->
-  {% if can_manage_recruitment %}
-    <a href="{% url 'recruitment:candidate_edit' candidate.pk %}"
-       class="btn btn-outline-secondary btn-sm d-inline-flex align-items-center">
-      Editar Perfil
-    </a>
+    <!-- Descargar CV -->
+    {% if candidate.cv_file and candidate.cv_file.name %}
+      <a href="{% url 'recruitment:candidate_cv' candidate.pk %}"
+         class="btn btn-outline-primary btn-sm d-inline-flex align-items-center"
+         style="height: 34px; white-space: nowrap;">
+        Descargar CV
+      </a>
+    {% endif %}
 
-    <!-- Eliminar -->
-    <form method="post"
-          action="{% url 'recruitment:candidate_delete' candidate.pk %}"
-          class="m-0 d-inline-flex align-items-stretch"
-          onsubmit="return confirm('¿Eliminar permanentemente a {{ candidate }} de la lista de postulantes? Esta acción no se puede deshacer.');">
-      {% csrf_token %}
-      <button type="submit"
-              class="btn btn-outline-danger btn-sm d-inline-flex align-items-center">
-        Eliminar
-      </button>
-    </form>
-  {% endif %}
+    <!-- Editar Perfil (subir/reemplazar/eliminar CV sin ejecutar IA) -->
+    {% if can_manage_recruitment %}
+      <a href="{% url 'recruitment:candidate_edit' candidate.pk %}"
+         class="btn btn-outline-secondary btn-sm d-inline-flex align-items-center"
+         style="height: 34px; white-space: nowrap;">
+        Editar Perfil
+      </a>
 
+      <!-- Eliminar Postulante -->
+      <form method="post"
+            action="{% url 'recruitment:candidate_delete' candidate.pk %}"
+            class="m-0 d-inline-flex align-items-stretch"
+            onsubmit="return confirm('¿Eliminar permanentemente a {{ candidate }} de la lista de postulantes? Esta acción no se puede deshacer.');">
+        {% csrf_token %}
+        <button type="submit"
+                class="btn btn-outline-danger btn-sm d-inline-flex align-items-center"
+                style="height: 34px; white-space: nowrap;">
+          Eliminar
+        </button>
+      </form>
+    {% endif %}
+  </div>
 </div>
 
 <!-- Datos del Postulante / Candidato -->
@@ -109,7 +120,7 @@
       </div>
     </div>
 
-   <!-- Listado de Postulaciones Activas y gestión de sus etapas -->
+    <!-- Listado de Postulaciones Activas y gestión de sus etapas -->
     <div class="card shadow-sm">
       <div class="card-header bg-white fw-semibold">Postulaciones Activas</div>
       <div class="card-body">
@@ -124,7 +135,7 @@
                 </div>
               </div>
             </div>
-            
+
             <!-- Formulario de cambio de etapa con selector completo y comentarios -->
             <form method="post" action="{% url 'recruitment:application_move' app.pk %}" class="mt-3">
               {% csrf_token %}
@@ -154,7 +165,6 @@
         {% endif %}
       </div>
     </div>
-
-
+  </div>
 </div>
 {% endblock %}

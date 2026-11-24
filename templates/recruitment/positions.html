@@ -4,21 +4,85 @@
 
 {% block recruitment_content %}
 <div class="d-flex justify-content-between align-items-center mb-3">
-  <h1 class="h3 mb-0">Búsquedas</h1>
+  <h1 class="h3 mb-0">Adquisición de Talento</h1>
   {% if can_manage_recruitment %}
     <a href="{% url 'recruitment:position_create' %}" class="btn btn-primary">+ Nueva búsqueda</a>
   {% endif %}
 </div>
+
+<form method="get" class="card card-body shadow-sm mb-3">
+  <div class="row g-2 align-items-end">
+    <div class="col-12 col-md-5">
+      <label for="id_q" class="form-label small mb-1">Buscar</label>
+      <input
+        id="id_q"
+        type="text"
+        name="q"
+        value="{{ q }}"
+        class="form-control"
+        placeholder="Título, cliente/área, descripción o requisitos..."
+      >
+    </div>
+
+    <div class="col-6 col-md-2">
+      <label for="id_status" class="form-label small mb-1">Estado</label>
+      <select id="id_status" name="status" class="form-select">
+        <option value="">Todos</option>
+        {% for val, label in status_choices %}
+          <option value="{{ val }}" {% if status_filter == val %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="col-6 col-md-3">
+      <label for="id_sort" class="form-label small mb-1">Ordenar por</label>
+      <select id="id_sort" name="sort" class="form-select">
+        {% for sort_key, sort_label in sort_options %}
+          <option value="{{ sort_key }}" {% if current_sort == sort_key %}selected{% endif %}>{{ sort_label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="col-12 col-md-2 d-flex gap-2">
+      <button type="submit" class="btn btn-primary w-100">Buscar</button>
+      {% if q or status_filter or current_sort != "-created_at" %}
+        <a href="{% url 'recruitment:positions' %}" class="btn btn-outline-secondary" title="Limpiar filtros">✕</a>
+      {% endif %}
+    </div>
+  </div>
+</form>
 
 <div class="card shadow-sm">
   <div class="table-responsive">
     <table class="table table-hover align-middle mb-0">
       <thead class="table-light">
         <tr>
-          <th>Título</th>
-          <th>Cliente / Área</th>
+          <th>
+            <a href="?q={{ q|urlencode }}&status={{ status_filter|urlencode }}&sort={% if current_sort == 'title' %}-title{% else %}title{% endif %}" class="text-decoration-none text-reset">
+              Título {% if current_sort == "title" %}↑{% elif current_sort == "-title" %}↓{% endif %}
+            </a>
+          </th>
+          <th>
+            <a href="?q={{ q|urlencode }}&status={{ status_filter|urlencode }}&sort={% if current_sort == 'client' %}-client{% else %}client{% endif %}" class="text-decoration-none text-reset">
+              Cliente / Área {% if current_sort == "client" %}↑{% elif current_sort == "-client" %}↓{% endif %}
+            </a>
+          </th>
           <th>Responsable</th>
-          <th>Estado</th>
+          <th>
+            <a href="?q={{ q|urlencode }}&status={{ status_filter|urlencode }}&sort={% if current_sort == 'status' %}-status{% else %}status{% endif %}" class="text-decoration-none text-reset">
+              Estado {% if current_sort == "status" %}↑{% elif current_sort == "-status" %}↓{% endif %}
+            </a>
+          </th>
+          <th>
+            <a href="?q={{ q|urlencode }}&status={{ status_filter|urlencode }}&sort={% if current_sort == '-start_date' %}start_date{% else %}-start_date{% endif %}" class="text-decoration-none text-reset">
+              Inicio {% if current_sort == "-start_date" %}↓{% elif current_sort == "start_date" %}↑{% endif %}
+            </a>
+          </th>
+          <th>
+            <a href="?q={{ q|urlencode }}&status={{ status_filter|urlencode }}&sort={% if current_sort == 'closing_date' %}-closing_date{% else %}closing_date{% endif %}" class="text-decoration-none text-reset">
+              Cierre {% if current_sort == "closing_date" %}↑{% elif current_sort == "-closing_date" %}↓{% endif %}
+            </a>
+          </th>
           <th class="text-center">Postulaciones</th>
           <th></th>
         </tr>
@@ -38,6 +102,8 @@
               <span class="badge bg-secondary">{{ position.get_status_display }}</span>
             {% endif %}
           </td>
+          <td>{{ position.start_date|date:"d/m/Y"|default:"—" }}</td>
+          <td>{{ position.closing_date|date:"d/m/Y"|default:"—" }}</td>
           <td class="text-center">{{ position.applications.count }}</td>
           <td class="text-end">
             <a href="{% url 'recruitment:position_detail' position.pk %}" class="btn btn-sm btn-outline-primary">Ver</a>
@@ -47,7 +113,7 @@
           </td>
         </tr>
         {% empty %}
-        <tr><td colspan="6" class="text-center text-muted py-4">Todavía no hay búsquedas cargadas.</td></tr>
+        <tr><td colspan="8" class="text-center text-muted py-4">No se encontraron búsquedas con los criterios seleccionados.</td></tr>
         {% endfor %}
       </tbody>
     </table>

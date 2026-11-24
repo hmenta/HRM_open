@@ -1,10 +1,10 @@
 {% extends "recruitment/base.html" %}
 
-{% block recruitment_title %}Nuevo postulante{% endblock %}
+{% block recruitment_title %}{% if form.instance.pk %}Editar postulante{% else %}Nuevo postulante{% endif %}{% endblock %}
 
 {% block recruitment_content %}
 <div class="d-flex justify-content-between align-items-center mb-3">
-  <h1 class="h3 mb-0">Nuevo postulante</h1>
+  <h1 class="h3 mb-0">{% if form.instance.pk %}Editar postulante: {{ form.instance }}{% else %}Nuevo postulante{% endif %}</h1>
   <a href="{% url 'recruitment:candidate_list' %}" class="btn btn-outline-secondary btn-sm">← Volver a postulantes</a>
 </div>
 
@@ -20,19 +20,35 @@
       <label for="{{ form.cv_file.id_for_label }}" class="form-label">{{ form.cv_file.label }}</label>
       <div class="d-flex flex-wrap align-items-center gap-2">
         {{ form.cv_file }}
-        <button type="submit" name="parse_cv_now" value="1" class="btn btn-outline-success btn-sm">
-          Importar CV con IA
-        </button>
+            <button type="submit" name="parse_cv_now" value="1" class="btn btn-outline-success btn-sm">
+            Importar CV con IA
+          </button>
+        <!-- {% if not form.instance.pk %} Habilitar antes del button en el caso de no querer que aparezca el botón para importar CV hasta cargar uno. -->
+        <!-- {% endif %} -->
       </div>
+      {% if form.instance.pk and form.instance.cv_file and form.instance.cv_file.name %}
+        <div class="form-text">
+          CV actual: <a href="{% url 'recruitment:candidate_cv' form.instance.pk %}" target="_blank">{{ form.instance.cv_file.name }}</a>
+        </div>
+      {% endif %}
       {% if form.cv_file.errors %}
         <div class="text-danger small mt-1">{{ form.cv_file.errors }}</div>
       {% endif %}
     </div>
   {% endif %}
 
+  {% if form.clear_cv and form.instance.pk and form.instance.cv_file and form.instance.cv_file.name %}
+    <div class="form-check mb-3">
+      {{ form.clear_cv }}
+      <label class="form-check-label text-danger" for="{{ form.clear_cv.id_for_label }}">
+        {{ form.clear_cv.label }}
+      </label>
+    </div>
+  {% endif %}
+
   <div class="row g-3">
     {% for field in form %}
-      {% if field.name != "cv_file" %}
+      {% if field.name != "cv_file" and field.name != "clear_cv" %}
         <div class="col-md-6">
           <label for="{{ field.id_for_label }}" class="form-label">{{ field.label }}</label>
           {{ field }}
@@ -45,8 +61,12 @@
   </div>
 
   <div class="d-flex align-items-center gap-2 mt-4">
-    <button type="submit" class="btn btn-primary">Guardar postulante</button>
-    <a href="{% url 'recruitment:candidate_list' %}" class="btn btn-outline-secondary">Cancelar</a>
+    <button type="submit" class="btn btn-primary">Guardar cambios</button>
+    {% if form.instance.pk %}
+      <a href="{% url 'recruitment:candidate_detail' form.instance.pk %}" class="btn btn-outline-secondary">Cancelar</a>
+    {% else %}
+      <a href="{% url 'recruitment:candidate_list' %}" class="btn btn-outline-secondary">Cancelar</a>
+    {% endif %}
   </div>
 </form>
 {% endblock %}

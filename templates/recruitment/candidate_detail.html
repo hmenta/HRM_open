@@ -86,7 +86,7 @@
     </div>
 
     <div class="card shadow-sm">
-      <div class="card-header bg-white fw-semibold">Historial de etapas</div>
+      <div class="card-header bg-white fw-semibold">Historial y notas por etapa</div>
       <ul class="list-group list-group-flush">
         {% for log in logs %}
         <li class="list-group-item small">
@@ -148,19 +148,22 @@
                 </select>
               </div>
               <div class="mb-2">
-                <input type="text" name="comment" class="form-control form-control-sm" placeholder="Comentario u observación (opcional)..." maxlength="300">
+                <input type="text" name="comment" class="form-control form-control-sm" placeholder="Comentario u observación (opcional)..." maxlength="500">
               </div>
               <button type="submit" class="btn btn-primary btn-sm w-100 mb-2">Actualizar etapa</button>
             </form>
             
 
             <!-- Notas del reclutador por etapa -->
+            <!-- Habilitar Opción para agregar notas adicionales a las declaradas en el historial 
+                los modelos views, forms y urls.py ya quedaron preparados.  
+        
             <div class="card shadow-sm">
             <div class="card-header bg-white fw-semibold">Notas por etapa</div>
-            <!-- <div class="mt-3">        
+                <div class="mt-3">        
                 <div class="fw-semibold small mb-2">
                     Notas por etapa
-                </div> -->
+                </div> 
 
                 {% for stage_key, stage_label, note_value in app.stage_notes_items %}
 
@@ -210,7 +213,7 @@
                 {% endfor %}
 
           </div>
-        </div>
+        </div> -->
 
 
             <!-- Botón para desafectar al candidato de esta búsqueda -->

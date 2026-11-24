@@ -24,6 +24,7 @@ urlpatterns = [
     path('candidates/<int:pk>/cv/', views.candidate_cv, name='candidate_cv'),
     path('candidates/<int:pk>/assign/', views.assign_candidate_position, name='assign_candidate_position'),
     path('applications/<int:pk>/delete/', views.application_delete, name='application_delete'), 
+    path("applications/<int:pk>/stage-note/", views.application_save_stage_note, name="application_save_stage_note"),
 
     # Agente de IA para lectura de CVs
     path("candidates/<int:pk>/parse-cv/", views.candidate_parse_cv, name="candidate_parse_cv"),

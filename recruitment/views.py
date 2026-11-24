@@ -383,7 +383,12 @@ def candidate_detail(request, pk):
     )
 
     for app in applications:
-        app.next_options = next_options(app.stage)
+        app.next_options = next_options(app.stage) # Lista ordenada con las etapas y sus notas para guardar. 
+        notes_dict = dict(app.stage_notes or {})
+        app.stage_notes_items = [
+            (stage_key, stage_label, notes_dict.get(stage_key, ""))
+            for stage_key, stage_label in Application.Stage.choices
+        ]
 
     # El historial (logs) sigue trayendo TODO el recorrido histórico del candidato sin perder nada
     logs = StageLog.objects.filter(application__candidate=candidate).select_related(
@@ -402,7 +407,6 @@ def candidate_detail(request, pk):
         "user_role": user_role,
         "can_manage_recruitment": can_manage_recruitment,
     })
-
 
 @role_required(*ALL_ROLES)
 def candidate_cv(request, pk):
@@ -510,7 +514,7 @@ def portal_thanks(request):
     return render(request, "portal/thanks.html")
 
 
-# RELATIVO AL AGENTE DE IA PARA LECTURA DE CVS / Vista candidate_parse_cv
+## RELATIVO AL AGENTE DE IA PARA LECTURA DE CVS / Vista candidate_parse_cv
 @role_required(*EDIT_ROLES)
 @require_POST
 def candidate_parse_cv(request, pk):
@@ -533,3 +537,26 @@ def candidate_parse_cv(request, pk):
         )
 
     return redirect("recruitment:candidate_detail", pk=candidate.pk)
+
+## ---- PARA GUARDAR LAS NOTAS POR ETAPA EN EL PERFIL DEL CANDIDATO ---- ##
+@role_required(*EDIT_ROLES)
+@require_POST
+def application_save_stage_note(request, pk):
+    application = get_object_or_404(Application, pk=pk)
+    stage_key = (request.POST.get("stage") or "").strip()
+    note_text = (request.POST.get("note") or "").strip()
+
+    if stage_key not in set(Application.Stage.values):
+        messages.error(request, "Etapa inválida.")
+        return redirect("recruitment:candidate_detail", pk=application.candidate.pk)
+
+    notes = dict(application.stage_notes or {})
+    if note_text:
+        notes[stage_key] = note_text
+    else:
+        notes.pop(stage_key, None)
+
+    application.stage_notes = notes
+    application.save(update_fields=["stage_notes", "updated_at"])
+    messages.success(request, "Nota de la etapa guardada.")
+    return redirect("recruitment:candidate_detail", pk=application.candidate.pk)

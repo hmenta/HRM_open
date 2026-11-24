@@ -83,6 +83,7 @@ class Application(models.Model):
     candidate = models.ForeignKey(Candidate, on_delete=models.CASCADE, related_name="applications")
     position = models.ForeignKey(Position, on_delete=models.CASCADE, related_name="applications")
     stage = models.CharField("Etapa", max_length=20, choices=Stage.choices, default=Stage.NEW)
+    stage_notes = models.JSONField("Notas por etapa", default=dict, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

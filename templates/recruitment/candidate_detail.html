@@ -135,7 +135,7 @@
                 </div>
               </div>
             </div>
-
+              
             <!-- Formulario de cambio de etapa con selector completo y comentarios -->
             <form method="post" action="{% url 'recruitment:application_move' app.pk %}" class="mt-3">
               {% csrf_token %}
@@ -152,6 +152,66 @@
               </div>
               <button type="submit" class="btn btn-primary btn-sm w-100 mb-2">Actualizar etapa</button>
             </form>
+            
+
+            <!-- Notas del reclutador por etapa -->
+            <div class="card shadow-sm">
+            <div class="card-header bg-white fw-semibold">Notas por etapa</div>
+            <!-- <div class="mt-3">        
+                <div class="fw-semibold small mb-2">
+                    Notas por etapa
+                </div> -->
+
+                {% for stage_key, stage_label, note_value in app.stage_notes_items %}
+
+                    <form method="post"
+                          action="{% url 'recruitment:application_save_stage_note' app.pk %}"
+                          class="border rounded p-2 mb-2 bg-white">
+
+                        {% csrf_token %}
+
+                        <input type="hidden" name="stage" value="{{ stage_key }}">
+
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+
+                            <label for="note_{{ app.pk }}_{{ stage_key }}"
+                                  class="form-label small fw-semibold mb-0">
+                                {{ stage_label }}
+                            </label>
+
+                            {% if note_value %}
+                                <span class="badge bg-info text-dark">
+                                    Con nota
+                                </span>
+                            {% endif %}
+
+                        </div>
+
+                        <textarea
+                            id="note_{{ app.pk }}_{{ stage_key }}"
+                            name="note"
+                            rows="3"
+                            class="form-control form-control-sm mb-2"
+                            placeholder="Escribí una nota para {{ stage_label }}...">{{ note_value }}</textarea>
+
+                        <button type="submit"
+                                class="btn btn-outline-primary btn-sm w-100">
+                            Guardar nota
+                        </button>
+
+                    </form>
+
+                {% empty %}
+
+                <p class="text-muted small">
+                    No hay etapas disponibles para cargar notas.
+                </p>
+
+                {% endfor %}
+
+          </div>
+        </div>
+
 
             <!-- Botón para desafectar al candidato de esta búsqueda -->
             <form method="post" action="{% url 'recruitment:application_delete' app.pk %}" onsubmit="return confirm('¿Estás seguro de desafectar al candidato de esta búsqueda? El historial se conservará.');">
@@ -164,7 +224,8 @@
           <p class="text-muted small mb-0 fst-italic">Sin vacante asignada actualmente.</p>
         {% endif %}
       </div>
-    </div>
-  </div>
-</div>
-{% endblock %}
+      
+  {% endblock %}
+  
+
+    

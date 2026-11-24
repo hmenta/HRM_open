@@ -17,6 +17,7 @@ class Position(models.Model):
     status = models.CharField("Estado", max_length=10, choices=Status.choices, default=Status.OPEN)
     start_date = models.DateField("Fecha de inicio", null=True, blank=True)
     closing_date = models.DateField("Fecha de cierre", null=True, blank=True)
+    vacancies = models.PositiveSmallIntegerField("Vacantes", default=1)
     owner = models.ForeignKey(
         settings.AUTH_USER_MODEL, verbose_name="Responsable", on_delete=models.SET_NULL,
         null=True, blank=True, related_name="positions",

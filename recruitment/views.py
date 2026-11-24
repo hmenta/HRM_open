@@ -143,6 +143,8 @@ POSITION_SORT_FIELDS = {
     "-client": ("client", True),
     "status": ("status", False),
     "-status": ("status", True),
+    "vacancies": ("vacancies", False),
+    "-vacancies": ("vacancies", True),
     "start_date": ("start_date", False),
     "-start_date": ("start_date", True),
     "closing_date": ("closing_date", False),
@@ -194,6 +196,8 @@ def position_list(request):
         ("-title", "Título (Z-A)"),
         ("client", "Cliente / Área (A-Z)"),
         ("-created_at", "Creación (más recientes)"),
+        ("-vacancies", "Vacantes (mayor a menor)"),
+        ("vacancies", "Vacantes (menor a mayor)"),
     ]
 
     context = {

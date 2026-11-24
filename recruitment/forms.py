@@ -39,6 +39,7 @@ class PositionForm(BootstrapMixin, forms.ModelForm):
             "closing_date",
             "description",
             "requirements",
+            "vacancies",
             "owner",
         ]
         widgets = {
@@ -59,6 +60,11 @@ class PositionForm(BootstrapMixin, forms.ModelForm):
 
     def clean(self):
         cleaned_data = super().clean()
+
+        vacancies = cleaned_data.get("vacancies")
+        if vacancies is not None and vacancies < 1:
+            self.add_error("vacancies", "La cantidad de vacantes debe ser al menos 1.")
+        
         start_date = cleaned_data.get("start_date")
         closing_date = cleaned_data.get("closing_date")
         if start_date and closing_date and closing_date < start_date:

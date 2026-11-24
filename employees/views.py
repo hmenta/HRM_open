@@ -46,26 +46,71 @@ def dashboard_view(request):
 # ==========================================
 # 1. VISTA DE LISTADO Y BUSCADOR DE LEGAJOS
 # ==========================================
+EMPLOYEE_SORT_FIELDS: dict[str, str] = {
+    "leg": "employee_leg",
+    "-leg": "-employee_leg",
+    "name": "last_name",
+    "-name": "-last_name",
+    "position": "position",
+    "-position": "-position",
+    "hire_date": "hire_date",
+    "-hire_date": "-hire_date",
+    "status": "is_active",
+    "-status": "-is_active",
+}
+
+EMPLOYEE_SORT_OPTIONS: list[tuple[str, str]] = [
+    ("name", "Apellido y Nombre (A-Z)"),
+    ("-name", "Apellido y Nombre (Z-A)"),
+    ("leg", "Legajo (ascendente)"),
+    ("-leg", "Legajo (descendente)"),
+    ("-hire_date", "Fecha de ingreso (recientes primero)"),
+    ("hire_date", "Fecha de ingreso (antiguas primero)"),
+    ("position", "Cargo (A-Z)"),
+    ("-position", "Cargo (Z-A)"),
+    ("-status", "Estado (Activos primero)"),
+    ("status", "Estado (Inactivos primero)"),
+]
+
+
 @capability_required(can_manage_employees)
 def employee_list_view(request):
     """
-    Muestra la lista de todos los empleados y permite filtrar 
-    según el término de búsqueda ingresado (nombre, apellido, cargo, DNI, legajo).
+    Muestra la lista de empleados con búsqueda, filtro por estado y ordenamiento seguro.
     """
-    query = request.GET.get('q', '')
-    
+    query = request.GET.get("q", "").strip()
+    status_filter = request.GET.get("status", "").strip()
+    current_sort = request.GET.get("sort", "name").strip()
+
+    employees = Employee.objects.all()
+
     if query:
-        employees = Employee.objects.filter(
+        employees = employees.filter(
             Q(first_name__icontains=query) |
             Q(last_name__icontains=query) |
             Q(position__icontains=query) |
             Q(dni__icontains=query) |
             Q(employee_leg__icontains=query)
         )
+
+    if status_filter == "active":
+        employees = employees.filter(is_active=True)
+    elif status_filter == "inactive":
+        employees = employees.filter(is_active=False)
+
+    order_field = EMPLOYEE_SORT_FIELDS.get(current_sort, "last_name")
+    if order_field in ("last_name", "-last_name"):
+        employees = employees.order_by(order_field, "first_name")
     else:
-        employees = Employee.objects.all()
-        
-    return render(request, 'employees/employee_list.html', {'employees': employees, 'query': query})
+        employees = employees.order_by(order_field, "last_name", "first_name")
+
+    return render(request, "employees/employee_list.html", {
+        "employees": employees,
+        "query": query,
+        "status_filter": status_filter,
+        "current_sort": current_sort,
+        "sort_options": EMPLOYEE_SORT_OPTIONS,
+    })
 
 
 # ==========================================
@@ -144,11 +189,42 @@ def employee_detail_view(request, pk):
 # 5. VISTA GRAL. DEL PANEL DE AUSENCIAS
 # ==========================================
 
+### -------- FILTRADO DE CERTIFICADOS DE AUSENCIAS ------ ###
+
+ABSENCE_SORT_FIELDS: dict[str, str] = {
+    "created_at": "created_at",
+    "-created_at": "-created_at",
+    "employee": "employee__last_name",
+    "-employee": "-employee__last_name",
+    "reason": "reason",
+    "-reason": "-reason",
+    "start_date": "start_date",
+    "-start_date": "-start_date",
+    "end_date": "end_date",
+    "-end_date": "-end_date",
+}
+
+ABSENCE_SORT_OPTIONS: list[tuple[str, str]] = [
+    ("-created_at", "Fecha de carga (recientes primero)"),
+    ("created_at", "Fecha de carga (antiguas primero)"),
+    ("-start_date", "Inicio ausencia (recientes primero)"),
+    ("start_date", "Inicio ausencia (antiguas primero)"),
+    ("-end_date", "Fin ausencia (recientes primero)"),
+    ("end_date", "Fin ausencia (antiguas primero)"),
+    ("employee", "Empleado (A-Z)"),
+    ("-employee", "Empleado (Z-A)"),
+    ("reason", "Motivo (A-Z)"),
+    ("-reason", "Motivo (Z-A)"),
+]
+
+
 @capability_required(can_manage_absences)
 def absence_list_view(request):
-    """Panel principal de ausencias con búsqueda por Legajo (ID) o Nombre/Apellido"""
+    """Panel principal de ausencias con búsqueda por Legajo (ID) o Nombre/Apellido y ordenamiento."""
     query = request.GET.get('q', '').strip()
-    certificates = AbsenceCertificate.objects.select_related('employee').all()
+    current_sort = request.GET.get('sort', '-created_at').strip()
+
+    certificates = AbsenceCertificate.objects.select_related('employee').prefetch_related('documents')
 
     if query:
         certificates = certificates.filter(
@@ -158,22 +234,31 @@ def absence_list_view(request):
             Q(employee__dni__icontains=query)
         )
 
+    order_field = ABSENCE_SORT_FIELDS.get(current_sort, '-created_at')
+    if order_field in ('employee__last_name', '-employee__last_name'):
+        certificates = certificates.order_by(order_field, 'employee__first_name', '-created_at')
+    else:
+        certificates = certificates.order_by(order_field, '-id')
+
     context = {
         'certificates': certificates,
         'query': query,
+        'current_sort': current_sort,
+        'sort_options': ABSENCE_SORT_OPTIONS,
     }
     return render(request, 'absences/absence_list.html', context)
 
-# Ver detalle del certificado.
-@capability_required(can_manage_absences)
-def absence_detail_view(request, pk):
-    certificate = get_object_or_404(AbsenceCertificate, pk=pk)
-    return render(request, 'absences/absence_detail.html', {'certificate': certificate})
+
 
 
 # ==========================================
 # 5. VISTA DEL PANEL DE CARGA DE CERTIFICADOS DE AUSENCIAS
 # ==========================================
+
+@capability_required(can_manage_absences)
+def absence_detail_view(request, pk):
+    certificate = get_object_or_404(AbsenceCertificate, pk=pk)
+    return render(request, 'absences/absence_detail.html', {'certificate': certificate})
 
 '''OLD 
 # Editar el detalle.

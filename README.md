@@ -11,6 +11,35 @@ Human Resourses Management for Small and Medium Businesses
     pip install pypdf pdfplumber python-docx requests
     ollama= qwen2.5:3b  ollama pull qwen2.5:3b
 
+    Package            Version
+    
+    asgiref            3.13.0
+    certifi            2026.10.23
+    cffi               2.1.1
+    charset-normalizer 3.5.2
+    cryptography       50.0.2
+    dj-database-url    3.1.2
+    Django             4.2.30
+    gunicorn           26.2.0
+    idna               3.20
+    lxml               6.1.3
+    pdfminer.six       20260107
+    pdfplumber         0.11.10
+    pillow             13.0.0
+    pip                25.0.1
+    psycopg2-binary    2.9.13
+    pycparser          3.12
+    pypdf              7.1.1
+    pypdfium2          5.15.2
+    python-decouple    3.8
+    python-docx        1.2.0
+    requests           2.34.2
+    sqlparse           0.6.0
+    typing_extensions  4.16.0
+    tzdata             2026.5
+    urllib3            2.8.0
+    whitenoise         6.12.0
+
     
 
 **How to install on local virtual enviroment for programming:**

@@ -1,13 +1,15 @@
 ﻿from django.contrib import messages
-from django.db.models import Q
+from django.db.models import F, Q
 from django.http import FileResponse, Http404, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.views.decorators.http import require_POST
+from cv_agent.parser import parse_cv
+from django.conf import settings
 
 from .forms import CandidateForm, PortalApplyForm, PositionForm
 from .models import Application, Candidate, Position, StageLog
-from .permissions import ALL_ROLES, EDIT_ROLES, role_required
+from .permissions import ADMIN, ALL_ROLES, EDIT_ROLES, RECRUITER, get_user_role, role_required
 from .services import (
     enrich_from_cv,
     extract_cv_data_from_upload,
@@ -19,51 +21,73 @@ from .workflow import can_move, next_options
 
 def _form_page(request, form, heading, cancel_url):
     return render(request, "recruitment/form.html", {
-        "form": form, "heading": heading, "cancel_url": cancel_url,
+        "form": form,
+        "heading": heading,
+        "cancel_url": cancel_url,
     })
 
 
-def _handle_cv_prefill(request):
+def _handle_cv_prefill(request, candidate=None):
     """Pre-completa el formulario de nuevo postulante desde el CV adjunto con IA."""
     cv_file = request.FILES.get("cv_file")
-    if not cv_file:
+    extracted = None
+
+    if cv_file:
+        try:
+            extracted = extract_cv_data_from_upload(cv_file)
+        except Exception as exc:
+            messages.error(
+                request,
+                f"No se pudo procesar el CV con la IA local ({exc}).",
+            )
+    elif candidate and candidate.cv_file and candidate.cv_file.name:
+        try:
+            extracted = parse_cv(candidate.cv_file.path)
+        except Exception as exc:
+            messages.error(
+                request,
+                f"No se pudo procesar el CV adjunto con la IA local ({exc}).",
+            )
+    else:
         messages.warning(
             request,
-            "Seleccioná primero un archivo de CV (.pdf o .docx) para importar con IA.",
+            "Seleccioná un archivo de CV (.pdf o .docx) para importar con IA.",
         )
-        form = CandidateForm(request.POST, request.FILES)
-        return render(request, "recruitment/candidate_form.html", {"form": form})
 
-    try:
-        extracted = extract_cv_data_from_upload(cv_file)
-    except Exception as exc:
-        messages.error(
+    if extracted is not None:
+        merged_data, filled_count = merge_extracted_into_post_data(request.POST, extracted)
+        form = CandidateForm(merged_data, request.FILES, instance=candidate)
+
+        if filled_count > 0:
+            messages.success(
+                request,
+                f"CV procesado con IA: se completaron {filled_count} campo(s). Revisá y guardá.",
+            )
+        else:
+            messages.info(
+                request,
+                "CV procesado, pero no había campos vacíos nuevos para completar.",
+            )
+
+        return render(
             request,
-            f"No se pudo procesar el CV con la IA local ({exc}).",
-        )
-        form = CandidateForm(request.POST, request.FILES)
-        return render(request, "recruitment/candidate_form.html", {"form": form})
-
-    merged_data, filled_count = merge_extracted_into_post_data(request.POST, extracted)
-    form = CandidateForm(merged_data, request.FILES)
-
-    if filled_count > 0:
-        messages.success(
-            request,
-            f"CV procesado con IA: se completaron {filled_count} campo(s). Revisá y guardá.",
-        )
-    else:
-        messages.info(
-            request,
-            "CV procesado, pero no había campos vacíos nuevos para completar.",
+            "recruitment/candidate_form.html",
+            {
+                "form": form,
+                "candidate": candidate,
+                "is_edit": bool(candidate),
+                "cv_text_preview": extracted.get("cv_text", ""),
+            },
         )
 
+    form = CandidateForm(request.POST, request.FILES, instance=candidate)
     return render(
         request,
         "recruitment/candidate_form.html",
         {
             "form": form,
-            "cv_text_preview": extracted.get("cv_text", ""),
+            "candidate": candidate,
+            "is_edit": bool(candidate),
         },
     )
 
@@ -110,10 +134,82 @@ def update_stage_ajax(request, pk):
 
 # ---------- Búsquedas ----------
 
-@role_required(*ALL_ROLES)
-def position_list(request):
-    return render(request, "recruitment/positions.html", {"positions": Position.objects.all()})
 
+# ---------- Listado de Búsquedas con Filtros ------------- 
+
+POSITION_SORT_FIELDS = {
+    "title": ("title", False),
+    "-title": ("title", True),
+    "client": ("client", False),
+    "-client": ("client", True),
+    "status": ("status", False),
+    "-status": ("status", True),
+    "vacancies": ("vacancies", False),
+    "-vacancies": ("vacancies", True),
+    "start_date": ("start_date", False),
+    "-start_date": ("start_date", True),
+    "closing_date": ("closing_date", False),
+    "-closing_date": ("closing_date", True),
+    "created_at": ("created_at", False),
+    "-created_at": ("created_at", True),
+}
+
+@role_required(*ALL_ROLES)
+# Listado simple sin filtros (old)
+# def position_list(request):
+#    return render(request, "recruitment/positions.html", {"positions": Position.objects.all()})
+
+def position_list(request):
+    """Lista búsquedas con recuadro de búsqueda y ordenamiento por campo."""
+    q = (request.GET.get("q") or "").strip()
+    status_filter = (request.GET.get("status") or "").strip()
+    sort = (request.GET.get("sort") or "-created_at").strip()
+
+    positions = Position.objects.select_related("owner")
+
+    if q:
+        positions = positions.filter(
+            Q(title__icontains=q)
+            | Q(client__icontains=q)
+            | Q(description__icontains=q)
+            | Q(requirements__icontains=q)
+        )
+
+    if status_filter and status_filter in Position.Status.values:
+        positions = positions.filter(status=status_filter)
+
+    field_name, descending = POSITION_SORT_FIELDS.get(sort, ("created_at", True))
+    if field_name in {"start_date", "closing_date"}:
+        order_expr = F(field_name).desc(nulls_last=True) if descending else F(field_name).asc(nulls_last=True)
+        positions = positions.order_by(order_expr, "-id")
+    else:
+        prefix = "-" if descending else ""
+        positions = positions.order_by(f"{prefix}{field_name}", "-id")
+
+    sort_options = [
+        ("-start_date", "Fecha de inicio (recientes primero)"),
+        ("start_date", "Fecha de inicio (antiguas primero)"),
+        ("closing_date", "Fecha de cierre (próximas primero)"),
+        ("-closing_date", "Fecha de cierre (lejanas primero)"),
+        ("status", "Estado (A-Z)"),
+        ("-status", "Estado (Z-A)"),
+        ("title", "Título (A-Z)"),
+        ("-title", "Título (Z-A)"),
+        ("client", "Cliente / Área (A-Z)"),
+        ("-created_at", "Creación (más recientes)"),
+        ("-vacancies", "Vacantes (mayor a menor)"),
+        ("vacancies", "Vacantes (menor a mayor)"),
+    ]
+
+    context = {
+        "positions": positions,
+        "q": q,
+        "status_filter": status_filter,
+        "current_sort": sort if sort in POSITION_SORT_FIELDS else "-created_at",
+        "sort_options": sort_options,
+        "status_choices": Position.Status.choices,
+    }
+    return render(request, "recruitment/positions.html", context)
 
 @role_required(*EDIT_ROLES)
 def position_create(request):
@@ -147,11 +243,12 @@ def position_detail(request, pk):
         for value, label in Application.Stage.choices
     ]
     return render(request, "recruitment/position_detail.html", {
-        "position": position, "columns": columns,
+        "position": position,
+        "columns": columns,
     })
 
 
-# ---------- Postulantes ----------
+# ---------- Postulantes / Candidatos ----------
 
 @role_required(*ALL_ROLES)
 def candidate_list(request):
@@ -162,8 +259,12 @@ def candidate_list(request):
 
     if q:
         qs = qs.filter(
-            Q(first_name__icontains=q) | Q(last_name__icontains=q) | Q(email__icontains=q)
-            | Q(current_title__icontains=q) | Q(skills__icontains=q) | Q(cv_text__icontains=q)
+            Q(first_name__icontains=q)
+            | Q(last_name__icontains=q)
+            | Q(email__icontains=q)
+            | Q(current_title__icontains=q)
+            | Q(skills__icontains=q)
+            | Q(cv_text__icontains=q)
         )
     if position:
         qs = qs.filter(applications__position_id=position).distinct()
@@ -181,8 +282,23 @@ def candidate_list(request):
 
 
 @role_required(*EDIT_ROLES)
+@require_POST
+def candidate_delete(request, pk):
+    candidate = get_object_or_404(Candidate, pk=pk)
+    candidate_name = str(candidate)
+
+    if candidate.cv_file and candidate.cv_file.name:
+        candidate.cv_file.delete(save=False)
+
+    candidate.delete()
+
+    messages.success(request, f"Postulante '{candidate_name}' eliminado de la base.")
+    return redirect("recruitment:candidate_list")
+
+
+@role_required(*EDIT_ROLES)
 def candidate_create(request):
-    """Alta de postulante con botón dedicado para importar datos del CV con IA."""
+    """Alta de postulante con opción de pre-rellenar con IA o guardar directamente."""
     if request.method == "POST":
         if "parse_cv_now" in request.POST:
             return _handle_cv_prefill(request)
@@ -190,8 +306,6 @@ def candidate_create(request):
         form = CandidateForm(request.POST, request.FILES)
         if form.is_valid():
             candidate = form.save()
-            if candidate.cv_file:
-                enrich_from_cv(candidate, overwrite=False)
             messages.success(request, "Postulante guardado correctamente.")
             return redirect("recruitment:candidate_detail", pk=candidate.pk)
     else:
@@ -202,18 +316,29 @@ def candidate_create(request):
 
 @role_required(*EDIT_ROLES)
 def candidate_edit(request, pk):
+    """Edita datos, gestiona cv_file sin IA al guardar, y permite importar CV con IA."""
     candidate = get_object_or_404(Candidate, pk=pk)
-    form = CandidateForm(request.POST or None, request.FILES or None, instance=candidate)
-    if request.method == "POST" and form.is_valid():
-        candidate = form.save()
-        if "cv_file" in form.changed_data and candidate.cv_file:
-            enrich_from_cv(candidate)
-        messages.success(request, "Postulante actualizado.")
-        return redirect("recruitment:candidate_detail", pk=candidate.pk)
-    return _form_page(
-        request, form,
-        f"Editar postulante: {candidate}",
-        reverse("recruitment:candidate_detail", args=[candidate.pk]),
+
+    if request.method == "POST":
+        if "parse_cv_now" in request.POST:
+            return _handle_cv_prefill(request, candidate=candidate)
+
+        form = CandidateForm(request.POST, request.FILES, instance=candidate)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Postulante actualizado.")
+            return redirect("recruitment:candidate_detail", pk=candidate.pk)
+    else:
+        form = CandidateForm(instance=candidate)
+
+    return render(
+        request,
+        "recruitment/candidate_form.html",
+        {
+            "form": form,
+            "candidate": candidate,
+            "is_edit": True,
+        },
     )
 
 
@@ -240,7 +365,10 @@ def application_delete(request, pk):
         comment="Candidato desafectado de la búsqueda",
     )
 
-    messages.success(request, f"Candidato desafectado de la búsqueda '{position_title}' (historial conservado).")
+    messages.success(
+        request,
+        f"Candidato desafectado de la búsqueda '{position_title}' (historial conservado).",
+    )
     return redirect("recruitment:candidate_detail", pk=candidate_pk)
 
 
@@ -256,7 +384,12 @@ def candidate_detail(request, pk):
     )
 
     for app in applications:
-        app.next_options = next_options(app.stage)
+        app.next_options = next_options(app.stage) # Lista ordenada con las etapas y sus notas para guardar. 
+        notes_dict = dict(app.stage_notes or {})
+        app.stage_notes_items = [
+            (stage_key, stage_label, notes_dict.get(stage_key, ""))
+            for stage_key, stage_label in Application.Stage.choices
+        ]
 
     # El historial (logs) sigue trayendo TODO el recorrido histórico del candidato sin perder nada
     logs = StageLog.objects.filter(application__candidate=candidate).select_related(
@@ -264,14 +397,17 @@ def candidate_detail(request, pk):
     )
 
     positions_open = Position.objects.filter(status=Position.Status.OPEN)
+    user_role = get_user_role(request.user)
+    can_manage_recruitment = user_role in (ADMIN, RECRUITER)
 
     return render(request, "recruitment/candidate_detail.html", {
         "candidate": candidate,
         "applications": applications,
         "logs": logs,
         "positions_open": positions_open,
+        "user_role": user_role,
+        "can_manage_recruitment": can_manage_recruitment,
     })
-
 
 @role_required(*ALL_ROLES)
 def candidate_cv(request, pk):
@@ -290,16 +426,13 @@ def assign_candidate_position(request, pk):
     if position_id:
         position = get_object_or_404(Position, pk=position_id)
 
-        # Buscamos si ya existía una postulación previa (activa, dada de baja o cerrada) para esta búsqueda
         application = Application.objects.filter(candidate=candidate, position=position).first()
 
         if application:
             old_stage = application.stage
-            # Si estaba dada de baja o cerrada, la reactivamos a la etapa "nuevo"
             application.stage = Application.Stage.NEW
             application.save()
 
-            # Registramos el movimiento en el historial
             StageLog.objects.create(
                 application=application,
                 from_stage=old_stage,
@@ -309,7 +442,6 @@ def assign_candidate_position(request, pk):
             )
             messages.success(request, f"Candidato reasignado a la búsqueda '{position.title}'.")
         else:
-            # Si nunca estuvo postulado a esta búsqueda, creamos el registro nuevo
             application = Application.objects.create(
                 candidate=candidate,
                 position=position,
@@ -383,7 +515,7 @@ def portal_thanks(request):
     return render(request, "portal/thanks.html")
 
 
-# RELATIVO AL AGENTE DE IA PARA LECTURA DE CVS / Vista candidate_parse_cv
+## RELATIVO AL AGENTE DE IA PARA LECTURA DE CVS / Vista candidate_parse_cv
 @role_required(*EDIT_ROLES)
 @require_POST
 def candidate_parse_cv(request, pk):
@@ -406,3 +538,58 @@ def candidate_parse_cv(request, pk):
         )
 
     return redirect("recruitment:candidate_detail", pk=candidate.pk)
+
+## ---- PARA GUARDAR LAS NOTAS POR ETAPA EN EL PERFIL DEL CANDIDATO ---- ##
+@role_required(*EDIT_ROLES)
+@require_POST
+def application_save_stage_note(request, pk):
+    application = get_object_or_404(Application, pk=pk)
+    stage_key = (request.POST.get("stage") or "").strip()
+    note_text = (request.POST.get("note") or "").strip()
+
+    if stage_key not in set(Application.Stage.values):
+        messages.error(request, "Etapa inválida.")
+        return redirect("recruitment:candidate_detail", pk=application.candidate.pk)
+
+    notes = dict(application.stage_notes or {})
+    if note_text:
+        notes[stage_key] = note_text
+    else:
+        notes.pop(stage_key, None)
+
+    application.stage_notes = notes
+    application.save(update_fields=["stage_notes", "updated_at"])
+    messages.success(request, "Nota de la etapa guardada.")
+    return redirect("recruitment:candidate_detail", pk=application.candidate.pk)
+
+
+### """Frontend público de empleo: sin login ni menú del HRM interno.""" ###
+
+def portal_apply(request):
+    if not getattr(settings, "PORTAL_ENABLED", True):
+        raise Http404("Portal de empleo desactivado.")
+
+    form = PortalApplyForm(request.POST or None, request.FILES or None)
+    if request.method == "POST" and form.is_valid():
+        save_portal_candidate({
+            "first_name": form.cleaned_data["first_name"],
+            "last_name": form.cleaned_data["last_name"],
+            "email": form.cleaned_data["email"],
+            "phone": form.cleaned_data.get("phone", ""),
+            "cv_file": form.cleaned_data["cv_file"],
+            "position": form.cleaned_data.get("position"),
+        })
+        return redirect("recruitment:portal_thanks")
+
+    open_positions = Position.objects.filter(status=Position.Status.OPEN).order_by("-created_at")[:8]
+    return render(request, "portal/apply.html", {
+        "form": form,
+        "open_positions": open_positions,
+    })
+
+
+def portal_thanks(request):
+    if not getattr(settings, "PORTAL_ENABLED", True):
+        raise Http404("Portal de empleo desactivado.")
+
+    return render(request, "portal/thanks.html")

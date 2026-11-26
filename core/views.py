@@ -2,13 +2,14 @@
 from django.shortcuts import get_object_or_404, redirect, render
 
 from accounts.decorators import capability_required
-from accounts.roles import can_manage_settings
+from accounts.roles import can_manage_settings, can_manage_absences
 
 from .forms import ApiCredentialCreateForm, EmailSettingsForm, NotificationRuleForm
 from .models import ApiCredential, EmailSettings, NotificationRule
 from .notifications import ensure_default_notification_rules
 from .models import NotificationEvent
 
+### ------- ATENCION: Algunas vistas se encuentran en views.py del módulo employees ----------- ###
 
 @capability_required(can_manage_settings)
 def settings_hub_view(request):
@@ -170,3 +171,4 @@ def settings_notifications_view(request):
             NotificationEvent.NEW_CV: 'Cuando ingresa un CV / postulación por el portal.',
         },
     })
+

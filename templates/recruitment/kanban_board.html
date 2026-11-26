@@ -1,25 +1,122 @@
 ﻿{% extends "recruitment/base.html" %}
 
 {% block recruitment_content %}
+<style>
+    /* Contenedor principal con flujo de izquierda a derecha y salto hacia abajo */
+    .kanban-grid {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1rem 0.5rem; /* Espacio vertical y horizontal */
+        align-items: stretch;
+    }
+
+    /* Cada bloque de etapa (columna + flecha conectora) */
+    .kanban-stage-wrapper {
+        display: flex;
+        align-items: stretch;
+        /* 4 columnas por fila en pantallas grandes, 2 en medianas, 1 en móviles */
+        flex: 1 1 calc(25% - 0.5rem);
+        min-width: 270px;
+    }
+
+    .kanban-card-container {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+    }
+
+    /* Estilo de la flecha conectora entre etapas */
+    .kanban-arrow {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0 0.4rem;
+        color: #6c757d;
+        font-size: 1.35rem;
+        font-weight: bold;
+        user-select: none;
+    }
+
+    /* Número de orden en el encabezado */
+    .stage-step-badge {
+        width: 22px;
+        height: 22px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.75rem;
+        border-radius: 50%;
+        background-color: #e9ecef;
+        color: #495057;
+        margin-right: 0.5rem;
+        font-weight: 700;
+    }
+
+    /* Zona de tarjetas con scroll interno para mantener simetría entre filas */
+    .kanban-column {
+        min-height: 220px;
+        max-height: 380px;
+        overflow-y: auto;
+        transition: background-color 0.2s ease;
+    }
+
+    /* Feedback visual al arrastrar sobre una columna */
+    .kanban-column.drag-over {
+        background-color: #e2e8f0 !important;
+        outline: 2px dashed #0d6efd;
+        outline-offset: -4px;
+    }
+
+    .kanban-card {
+        cursor: grab;
+    }
+    .kanban-card:active {
+        cursor: grabbing;
+    }
+
+    /* Ajuste para móviles: una columna por fila y flecha apuntando hacia abajo */
+    @media (max-width: 767.98px) {
+        .kanban-stage-wrapper {
+            flex: 1 1 100%;
+            flex-direction: column;
+        }
+        .kanban-arrow {
+            padding: 0.35rem 0;
+        }
+    }
+</style>
+
 <div class="container-fluid py-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2>Tablero de Reclutamiento (Kanban)</h2>
+        <div>
+            <h2 class="mb-0">Flujo del Reclutamiento (Kanban)</h2>
+            <!--<small class="text-muted">Flujo de progresión: izquierda a derecha y de arriba hacia abajo</small> -->
+        </div>
     </div>
 
-    <!-- Contenedor del Kanban -->
-    <div class="row flex-nowrap overflow-auto pb-4" style="min-height: 75vh;">
+    <!-- Contenedor Flex-Wrap del Kanban -->
+    <div class="kanban-grid pb-4">
         {% for key, data in board_data.items %}
-        <div class="col-md-3 col-lg-2">
-            <div class="card bg-light shadow-sm h-100">
+        <div class="kanban-stage-wrapper">
+            
+            <!-- Tarjeta de la Etapa -->
+            <div class="card bg-light shadow-sm kanban-card-container">
                 <div class="card-header bg-white font-weight-bold text-primary d-flex justify-content-between align-items-center">
-                    {{ data.label }}
-                    <span class="badge bg-secondary rounded-pill">{{ data.applications|length }}</span>
+                    <div class="d-flex align-items-center text-truncate">
+                        <span class="stage-step-badge">{{ forloop.counter }}</span>
+                        <span class="text-truncate" title="{{ data.label }}">{{ data.label }}</span>
+                    </div>
+                    <span class="badge bg-secondary rounded-pill ms-2">{{ data.applications|length }}</span>
                 </div>
                 
                 <!-- Zona donde se arrastran las tarjetas (Dropzone) -->
-                <div class="card-body kanban-column p-2" data-stage="{{ key }}" ondragover="allowDrop(event)" ondrop="drop(event)" style="min-height: 60vh;">
+                <div class="card-body kanban-column p-2" 
+                     data-stage="{{ key }}" 
+                     ondragover="allowDrop(event)" 
+                     ondragleave="dragLeave(event)"
+                     ondrop="drop(event)">
                     {% for app in data.applications %}
-                    <div class="card mb-2 shadow-sm kanban-card border-left-primary" 
+                    <div class="card mb-2 shadow-sm kanban-card border-start border-primary border-3" 
                          draggable="true" 
                          ondragstart="drag(event)" 
                          id="app-{{ app.pk }}"
@@ -37,6 +134,17 @@
                     {% endfor %}
                 </div>
             </div>
+
+            <!-- Flecha decorativa que indica el flujo hacia la siguiente etapa -->
+            {% if not forloop.last %}
+            <div class="kanban-arrow" title="Siguiente etapa">
+                <!-- Flecha horizontal en escritorio/tablet -->
+                <span class="d-none d-md-inline">&#10132;</span>
+                <!-- Flecha vertical en móvil -->
+                <span class="d-inline d-md-none">&#11015;</span>
+            </div>
+            {% endif %}
+
         </div>
         {% endfor %}
     </div>
@@ -46,6 +154,17 @@
 <script>
 function allowDrop(ev) {
     ev.preventDefault();
+    let column = ev.target.closest('.kanban-column');
+    if (column) {
+        column.classList.add('drag-over');
+    }
+}
+
+function dragLeave(ev) {
+    let column = ev.target.closest('.kanban-column');
+    if (column && !column.contains(ev.relatedTarget)) {
+        column.classList.remove('drag-over');
+    }
 }
 
 function drag(ev) {
@@ -57,9 +176,10 @@ function drop(ev) {
     let cardId = ev.dataTransfer.getData("text/plain");
     let cardElement = document.getElementById("app-" + cardId);
     
-    // Encontrar la columna destino
+    // Encontrar la columna destino y quitar estilo hover
     let column = ev.target.closest('.kanban-column');
     if (!column) return;
+    column.classList.remove('drag-over');
     
     let newStage = column.dataset.stage;
     let appId = cardId;
@@ -76,9 +196,7 @@ function drop(ev) {
     .then(response => response.json().then(data => ({status: response.status, body: data})))
     .then(res => {
         if (res.status === 200) {
-            // Mover visualmente la tarjeta a la nueva columna
             column.appendChild(cardElement);
-            // Opcional: recargar o actualizar badges sutilmente
             setTimeout(() => location.reload(), 300); 
         } else {
             alert("No permitido: " + res.body.message);

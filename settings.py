@@ -52,6 +52,8 @@ TEMPLATES = [
                 'employees.context_processors.company_context',
                 # Context Processors para los niveles de usuario en el módulo de recruiting
                 'recruitment.context_processors.recruitment_roles',
+                # Context Processors para el portal externo de empleos.
+                "core.context_processors.portal_settings", 
             ],
         },
     },
@@ -99,7 +101,7 @@ MEDIA_ROOT = BASE_DIR / 'media'
 SESSION_EXPIRE_AT_BROWSER_CLOSE = True
 
 # 2. Tiempo de vida de la sesión en segundos (ejemplo: 1800 segundos = 30 minutos de inactividad)
-SESSION_COOKIE_AGE = 600
+SESSION_COOKIE_AGE = 1800
 
 # 3. Hace que el contador de inactividad (SESSION_COOKIE_AGE) se reinicie con cada clic/request del usuario
 SESSION_SAVE_EVERY_REQUEST = True
@@ -110,7 +112,7 @@ SESSION_COOKIE_SECURE = not DEBUG
 SESSION_COOKIE_SAMESITE = 'Lax'
 
 # ==========================================
-# CONFIGURACIÓN AGENTE LOCAL DE IA (CV PARSER)
+# 5. CONFIGURACIÓN AGENTE LOCAL DE IA (CV PARSER)
 # ==========================================
 
 # Endpoint HTTP local de Ollama (100% self-hosted, sin servicios externos)
@@ -121,3 +123,7 @@ OLLAMA_CV_MODEL = config('OLLAMA_CV_MODEL', default='qwen2.5:3b')
 
 # Tiempo máximo de espera por inferencia en segundos (ajustable según CPU/GPU del equipo)
 OLLAMA_TIMEOUT_SECONDS = config('OLLAMA_TIMEOUT_SECONDS', default=90, cast=int)
+
+
+# 6. PORTAL EXTERNO DE EMPLEOS Y POSTULACIONES
+PORTAL_ENABLED = True  # Ponelo en False cuando quieras ocultarlo.

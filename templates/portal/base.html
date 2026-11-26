@@ -12,9 +12,9 @@
     <style>
         :root {
             --portal-ink: #14231c;
-            --portal-muted: #5c6b63;
-            --portal-accent: #1f7a54;
-            --portal-accent-dark: #165c3f;
+            --portal-muted: #5c636b;
+            --portal-accent: #1c467c;
+            --portal-accent-dark: #0f243f;
             --portal-surface: rgba(255,255,255,0.92);
             --portal-line: rgba(20,35,28,0.12);
         }
@@ -25,9 +25,9 @@
             color: var(--portal-ink);
             font-family: "DM Sans", system-ui, sans-serif;
             background:
-                radial-gradient(1200px 600px at 10% -10%, rgba(31,122,84,0.18), transparent 55%),
-                radial-gradient(900px 500px at 100% 0%, rgba(20,35,28,0.10), transparent 50%),
-                linear-gradient(180deg, #eef4f0 0%, #f7faf8 45%, #e8efe9 100%);
+                radial-gradient(1200px 600px at 10% -10%, rgba(31, 93, 163, 0.288), transparent 55%),
+                radial-gradient(900px 500px at 100% 0%, rgba(20, 23, 35, 0.1), transparent 50%),
+                linear-gradient(180deg, #eef2f4 0%, #f7f9fa 45%, #e8ecef 100%);
         }
         .portal-shell {
             min-height: 100vh;
@@ -58,7 +58,7 @@
             border: 1px solid var(--portal-line);
         }
         .portal-brand-name {
-            font-family: "Fraunces", Georgia, serif;
+            font-family: 'Lucida Sans', sans-serif, serif;
             font-weight: 700;
             font-size: 1.25rem;
             letter-spacing: -0.02em;
@@ -86,7 +86,7 @@
             animation: portalRise 0.55s ease both;
         }
         .portal-hero h1 {
-            font-family: "Fraunces", Georgia, serif;
+            font-family: 'Lucida Sans', sans-serif, serif;
             font-size: clamp(2rem, 4vw, 2.75rem);
             font-weight: 700;
             letter-spacing: -0.03em;
@@ -199,13 +199,13 @@
 <body class="portal-body">
     <div class="portal-shell">
         <header class="portal-top">
-            <a class="portal-brand" href="{% url 'empleo_apply' %}">
+            <a class="portal-brand" href="{% url 'recruitment:portal_apply' %}">
                 {% if company.logo %}
                     <img src="{{ company.logo.url }}" alt="{{ company.company_name }}">
                 {% endif %}
                 <span>
                     <span class="portal-brand-name">{{ company.company_name|default:"HRM Open" }}</span>
-                    <span class="portal-brand-tag">Portal de empleo</span>
+                    <span class="portal-brand-tag">¡Trabajá con nosotros!</span>
                 </span>
             </a>
         </header>
@@ -220,7 +220,7 @@
         </main>
 
         <footer class="portal-footer">
-            © {% now "Y" %} {{ company.company_name|default:"HRM Open" }} · Tus datos se usan solo para selección de personal
+            © {% now "Y" %} {{ company.company_name|default:"HRM Open" }} · Tus datos se utilizarán sólo para selección de personal de acuerdo a vacantes disponibles. No implica obligatoriedad de contratación.
         </footer>
     </div>
 </body>
